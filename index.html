@@ -184,7 +184,32 @@ h1,h2,h3{margin:0}
 .waitline{grid-column:1 / -1;display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-6px}
 .waitline svg{width:14px;height:14px;flex:none;color:var(--t400)}
 .waitline span{overflow:hidden;text-overflow:ellipsis}
-.rc .acts{position:absolute;top:8px;right:8px;display:flex}
+.rc .acts{position:absolute;top:40px;right:8px;display:flex}
+/* 감사의견: 목록 카드 상단 띠 */
+.aud{grid-column:1 / -1;display:flex;align-items:center;gap:8px;height:32px;margin:-16px -16px 0;padding:0 14px;font-size:12px;font-weight:600;border-bottom:1px solid;border-radius:11px 11px 0 0;white-space:nowrap;overflow:hidden}
+.aud b{flex:none;font-size:11px;font-weight:800;border:1.5px solid currentColor;border-radius:6px;padding:0 6px;line-height:18px;background:#fff}
+.aud span{overflow:hidden;text-overflow:ellipsis}
+.aud.ok{color:#1F8A5B;background:#E8F5EE;border-color:#CBE8D8}
+.aud.qu{color:#B54708;background:#FFF4E5;border-color:#F5DDBB}
+.aud.ad{color:#D92D20;background:#FEECEB;border-color:#F8CFCB}
+.aud.di{color:#5E5753;background:#F2EEEB;border-color:#E2DAD4}
+/* 감사의견: 상세 도장 */
+.audbox .srow{display:flex;align-items:center;gap:16px}
+.stamp{flex:none;width:76px;height:76px;border-radius:50%;border:4px double currentColor;display:grid;place-items:center;font-family:var(--f-title);font-weight:800;font-size:18px;letter-spacing:-.04em;transform:rotate(-9deg)}
+.stamp.sm{font-size:13px}
+.stamp.ok{color:#1F8A5B;background:#E8F5EE}
+.stamp.qu{color:#B54708;background:#FFF4E5}
+.stamp.ad{color:#D92D20;background:#FEECEB}
+.stamp.di{color:#5E5753;background:#F2EEEB}
+.audbox .smsg b{display:block;font-size:15px;font-weight:800}
+.audbox .smsg small{display:block;font-size:13px;color:var(--t600);margin-top:2px}
+.audrows{margin-top:14px;border-top:1px solid var(--line);padding-top:8px;display:grid;gap:6px;font-size:13px}
+.audrows div{display:flex;justify-content:space-between;gap:8px}
+.audrows span:first-child{color:var(--t600)}
+.audrows .y{color:#1F8A5B;font-weight:700}
+.audrows .w{color:#B54708;font-weight:700}
+.audrows .n{color:#D92D20;font-weight:700}
+.audnote{margin:10px 0 0;font-size:12px;color:var(--t400)}
 .save svg{width:22px;height:22px}
 .save.on svg{fill:var(--o900);stroke:var(--o900)}
 .empty{text-align:center;padding:36px 20px;display:grid;gap:14px;justify-items:center}
@@ -411,6 +436,16 @@ const need = () => PEOPLE.find(p => p[0]===Q.people)[2];
 
 function reviewsOf(r){ return [...(myReviews[r.id]||[]), ...r.reviews].sort((a,b) => b.date.localeCompare(a.date)); }
 function ratingOf(r){ const v = reviewsOf(r); return v.reduce((s,x)=>s+Number(x.rating),0)/v.length; }
+/* 감사의견: 동료 후기 기준 판정 (재미 요소) */
+function opinionOf(r){
+  const n = reviewsOf(r).length;
+  if (n < 2) return {k:'di', t:'의견거절', tag:'근거 부족', msg:'후기가 부족해 판단할 수 없어요', sub:'후기가 2건 이상 쌓이면 의견을 낼게요.'};
+  const avg = ratingOf(r), w = waitOf(r);
+  if (avg < 3) return {k:'ad', t:'부적정', tag:'', msg:'동료 평가가 낮아요', sub:'평균 별점이 3.0 미만이에요.'};
+  if (w.avg >= 20) return {k:'qu', t:'한정', tag:'대기 제외', msg:'대기시간을 제외하면 적정해요', sub:`${w.lunch?'점심 ':''}평균 대기가 ${w.avg}분이라 빠른 점심엔 아쉬워요.`};
+  if (avg < 4) return {k:'qu', t:'한정', tag:'평가 보통', msg:'무난하지만 평가가 보통이에요', sub:'평균 별점이 4.0에 조금 못 미쳐요.'};
+  return {k:'ok', t:'적정', tag:'', msg:'팀 식사 조건을 모두 충족해요', sub:'동료 평가가 좋고 대기도 짧아요.'};
+}
 function waitOf(r){ const v = reviewsOf(r); const l = v.filter(x=>x.slot==='점심'); const use = l.length ? l : v; return {avg: Math.round(use.reduce((s,x)=>s+Number(x.wait),0)/use.length), lunch: !!l.length, n: v.length, last: v[0].date}; }
 
 function matches(r, q){
@@ -680,7 +715,9 @@ function cardHTML(r, opt){
   if (r.reservation) bd.push('<span class="bdg">예약 가능</span>');
   if (r.parking) bd.push('<span class="bdg">주차 가능</span>');
   if (r.groupSeat) bd.push('<span class="bdg">단체석 있음</span>');
+  const op = opinionOf(r);
   return `<div class="card rc" role="button" tabindex="0" data-id="${r.id}">
+    <div class="aud ${op.k}"><b>${op.t}</b><span>${op.msg}</span></div>
     ${photo(r)}
     <div class="info">
       <div class="nm"><b>${esc(r.name.replace(' 예시점',''))}</b><span class="ex">예시 식당</span></div>
@@ -773,7 +810,7 @@ function mapCard(r){
 /* ---------- 1-4 식당 상세 ---------- */
 function vDetail(){
   const r = byId[route.arg]; if (!r){ go('home'); return; }
-  const on = mySaved().includes(r.id), rv = reviewsOf(r), w = waitOf(r);
+  const on = mySaved().includes(r.id), rv = reviewsOf(r), w = waitOf(r), op = opinionOf(r);
   const cell = (ic, t, s, ok) => `<div class="ucell ${ok===false?'no':''}">${ic}<span><b>${t}</b><small>${s}</small></span></div>`;
   $('#app').innerHTML = `<section class="scr notab">
     <div class="bar"><button class="iconbtn" id="bk" aria-label="뒤로">${I.back}</button>${LOGO}<div class="r"><button class="iconbtn" id="shTop" aria-label="공유하기">${I.share}</button><button class="iconbtn save ${on?'on':''}" id="svTop" aria-label="${on?'저장 취소':'저장하기'}">${I.bookmark}</button></div></div>
@@ -789,6 +826,15 @@ function vDetail(){
       <button id="aShare">${I.share}공유하기</button>
       <button id="aCall">${I.phone}전화 문의</button>
       <button id="aRoute">${I.route}길찾기</button>
+    </div>
+    <div class="card box audbox"><h2>동료 감사의견</h2>
+      <div class="srow"><div class="stamp ${op.k} ${op.t.length>2?'sm':''}" role="img" aria-label="감사의견 ${op.t}">${op.t}</div><div class="smsg"><b>${op.msg}</b><small>${op.sub}</small></div></div>
+      <div class="audrows num">
+        <div><span>평균 별점 ${rv.length?ratingOf(r).toFixed(1):'-'} (기준 4.0)</span>${!rv.length?'<span class="n">기록 없음</span>':ratingOf(r)>=4?'<span class="y">충족</span>':ratingOf(r)>=3?'<span class="w">보통</span>':'<span class="n">미달</span>'}</div>
+        <div><span>동료 후기 ${rv.length}건 (기준 2건)</span>${rv.length>=2?'<span class="y">충족</span>':'<span class="n">부족</span>'}</div>
+        <div><span>${w&&w.lunch?'점심 ':''}평균 대기 ${w?w.avg+'분':'-'} (기준 20분 미만)</span>${!w?'<span class="n">기록 없음</span>':w.avg<20?'<span class="y">충족</span>':'<span class="w">길어요</span>'}</div>
+      </div>
+      <p class="audnote">동료 후기를 바탕으로 앱이 판정해요. 재미로 참고해 주세요.</p>
     </div>
     <div class="card box"><h2>대표 메뉴와 가격</h2>${r.menus.map(m=>`<div class="mrow"><span>${esc(m.name)}</span><b class="num">${won(m.price)}</b></div>`).join('')}<div class="asof">가격 확인 ${PRICE_ASOF} 기준</div></div>
     <div class="card box"><h2>이용 정보</h2>
