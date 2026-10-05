@@ -167,7 +167,7 @@ h1,h2,h3{margin:0}
 .rc{display:grid;grid-template-columns:104px 1fr;gap:14px;padding:16px;cursor:pointer;text-align:left;width:100%;position:relative}
 .rc:hover{border-color:#F3CDBB}
 .ph{width:104px;height:104px;border-radius:12px;overflow:hidden;background:linear-gradient(145deg,var(--o50),var(--peach1));display:grid;place-items:center;color:var(--o-ink);font-weight:800;font-size:13px;position:relative}
-.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph img{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:block}
 .ph span{opacity:.75}
 .rc .info{min-width:0;display:grid;gap:2px;align-content:start}
 .rc .nm{display:flex;align-items:center;gap:6px;padding-right:34px}
@@ -229,7 +229,8 @@ h1,h2,h3{margin:0}
 
 /* 상세 */
 .dhero{height:220px;margin:0;background:linear-gradient(145deg,var(--o50),var(--peach1));display:grid;place-items:center;color:var(--o-ink);font-weight:800;overflow:hidden}
-.dhero img{width:100%;height:100%;object-fit:cover}
+.dhero{position:relative}
+.dhero img{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover}
 .dhead{padding:16px 16px 0;display:grid;gap:4px}
 .dhead .nm{display:flex;align-items:center;gap:8px}
 .dhead h1{font-size:22px}
