@@ -199,6 +199,7 @@ h1,h2,h3{margin:0}
 .leaflet-div-icon{background:none;border:0}
 .mapcard{padding:12px 16px 0}
 .mapcard>.card{box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.leaflet-tile-pane{filter:saturate(.75) sepia(.06) brightness(1.03)}
 .tilewarn{position:absolute;left:52px;right:8px;top:8px;z-index:500;background:rgba(255,255,255,.95);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--t600)}
 
 /* 상세 */
@@ -733,9 +734,27 @@ function drawMap(list){
   if (typeof L === 'undefined'){ $('#map').innerHTML = '<div class="empty"><p>지도를 불러오지 못했어요. 목록 탭으로 비교해 주세요.</p></div>'; return; }
   if (map){ map.remove(); map = null; }
   map = L.map('map', {zoomControl:true});
-  const tl = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {maxZoom:19, subdomains:'abcd', attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'}).addTo(map);
-  let warned = false;
-  tl.on('tileerror', () => { if (warned) return; warned = true; const n = document.createElement('div'); n.className = 'tilewarn'; n.textContent = '지도 배경을 불러오지 못했어요. 핀은 그대로 볼 수 있어요.'; $('#map').appendChild(n); });
+  /* 지도 배경: 키가 필요 없는 OpenStreetMap 기본 지도. 안 뜨면 OSM 인도주의(HOT) 지도로 자동 전환 */
+  const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자';
+  const TILES = [
+    {url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opt:{maxZoom:19, attribution:OSM_ATTR}},
+    {url:'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', opt:{maxZoom:19, subdomains:'abc', attribution:OSM_ATTR + ' · 지도 스타일 <a href="https://www.hotosm.org/">HOT</a>'}}
+  ];
+  let ti = 0, errs = 0, loaded = false, warned = false, tl;
+  const useTiles = () => {
+    if (tl) map.removeLayer(tl);
+    errs = 0; loaded = false;
+    tl = L.tileLayer(TILES[ti].url, TILES[ti].opt).addTo(map);
+    tl.on('tileload', () => { loaded = true; });
+    tl.on('tileerror', () => {
+      errs++;
+      if (loaded || errs < 3) return;
+      if (ti < TILES.length - 1){ ti++; useTiles(); return; }
+      if (warned) return; warned = true;
+      const n = document.createElement('div'); n.className = 'tilewarn'; n.textContent = '지도 배경을 불러오지 못했어요. 핀은 그대로 볼 수 있어요.'; $('#map').appendChild(n);
+    });
+  };
+  useTiles();
   const a = D.anchors[Q.region]; const pts = [a];
   L.marker(a, {icon:L.divIcon({className:'', html:`<span class="office">${esc(Q.region)}</span>`}), zIndexOffset:300, keyboard:false}).addTo(map);
   list.forEach((r,i) => {
