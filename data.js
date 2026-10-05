@@ -94,15 +94,15 @@ window.FIELD_DATA = {
    "distance": 420,
    "walk": 6,
    "drive": 4,
-   "rating": 4.3,
-   "likes": 9,
+   "rating": 4.2,
+   "likes": 1,
    "maxPeople": 6,
    "groupSeat": true,
    "room": false,
    "reservation": false,
    "parking": true,
    "parkingDetail": "가상 전용 주차장 · 약 8대",
-   "wait": 5,
+   "wait": 10,
    "waitBand": "10분 이내",
    "situations": [
     "빠른 점심",
@@ -128,15 +128,6 @@ window.FIELD_DATA = {
     }
    ],
    "reviews": [
-    {
-     "nick": "을지로직장인",
-     "date": "2026-09-25",
-     "slot": "점심",
-     "people": 6,
-     "rating": 4.4,
-     "wait": 0,
-     "text": "냉우동 정식이 기대 이상이었어요. 6명이 한 테이블에 같이 앉을 수 있었어요."
-    },
     {
      "nick": "정산담당",
      "date": "2026-09-21",
@@ -418,8 +409,8 @@ window.FIELD_DATA = {
    "distance": 500,
    "walk": 8,
    "drive": 4,
-   "rating": 4,
-   "likes": 5,
+   "rating": 2.7,
+   "likes": 1,
    "maxPeople": 6,
    "groupSeat": true,
    "room": false,
@@ -457,18 +448,18 @@ window.FIELD_DATA = {
      "date": "2026-09-10",
      "slot": "점심",
      "people": 4,
-     "rating": 3.9,
+     "rating": 2.6,
      "wait": 10,
-     "text": "주차가 돼서 짐 많은 날 차로 가기 좋았어요. 전날 전화로 예약하니 자리가 미리 준비돼 있었어요."
+     "text": "차돌 된장찌개가 너무 짜서 반 정도 남겼어요. 점심에 10분 기다린 것치고는 아쉬웠어요."
     },
     {
      "nick": "카페인충전",
      "date": "2026-09-02",
      "slot": "점심",
      "people": 6,
-     "rating": 4.1,
+     "rating": 2.8,
      "wait": 0,
-     "text": "차돌 된장찌개는 무난하게 맛있었어요. 단체석이 있어서 6명이 흩어지지 않고 앉았어요."
+     "text": "6명이 바로 앉을 수 있었던 건 좋았지만 반찬이 적고 찌개가 미지근하게 나왔어요."
     }
    ]
   },
@@ -679,15 +670,15 @@ window.FIELD_DATA = {
    "distance": 440,
    "walk": 7,
    "drive": 4,
-   "rating": 4.2,
-   "likes": 7,
+   "rating": 4.1,
+   "likes": 1,
    "maxPeople": 6,
    "groupSeat": true,
    "room": false,
    "reservation": false,
    "parking": false,
    "parkingDetail": "전용 주차 없음 · 인근 공영주차장 이용",
-   "wait": 5,
+   "wait": 10,
    "waitBand": "10분 이내",
    "situations": [
     "빠른 점심",
@@ -713,15 +704,6 @@ window.FIELD_DATA = {
     }
    ],
    "reviews": [
-    {
-     "nick": "회전율중시",
-     "date": "2026-09-28",
-     "slot": "점심",
-     "people": 4,
-     "rating": 4.3,
-     "wait": 0,
-     "text": "맑은 돼지국밥 맛이 깔끔해서 다음 필드 때도 또 올 것 같아요. 가격이 착해서 매일 와도 괜찮을 것 같아요."
-    },
     {
      "nick": "마곡출장중",
      "date": "2026-09-23",
@@ -1263,7 +1245,7 @@ window.FIELD_DATA = {
    "distance": 300,
    "walk": 5,
    "drive": 3,
-   "rating": 4.2,
+   "rating": 2.7,
    "likes": 1,
    "maxPeople": 4,
    "groupSeat": false,
@@ -1301,18 +1283,18 @@ window.FIELD_DATA = {
      "date": "2026-09-09",
      "slot": "점심",
      "people": 2,
-     "rating": 4.3,
+     "rating": 2.5,
      "wait": 0,
-     "text": "등심 스테이크 맛이 깔끔해서 다음 필드 때도 또 올 것 같아요. 전용 주차장이 있어서 차로 이동한 날 편했어요."
+     "text": "바로 들어가긴 했는데 스테이크가 주문한 굽기보다 많이 익어서 나왔어요. 가격 대비 아쉬워요."
     },
     {
      "nick": "국밥러버",
      "date": "2026-09-01",
      "slot": "점심",
      "people": 4,
-     "rating": 4.1,
+     "rating": 2.9,
      "wait": 0,
-     "text": "예약이 돼서 인원 많은 날도 걱정 없었어요. 가격대가 있어 손님 접대나 회식 때 추천해요."
+     "text": "4명이 앉기엔 자리가 좁았고 음식이 늦게 나와서 점심시간이 빠듯했어요."
     }
    ]
   },
@@ -1651,8 +1633,8 @@ window.FIELD_DATA = {
    "distance": 740,
    "walk": 11,
    "drive": 5,
-   "rating": 4.1,
-   "likes": 7,
+   "rating": 2.6,
+   "likes": 2,
    "maxPeople": 8,
    "groupSeat": true,
    "room": true,
@@ -1690,18 +1672,18 @@ window.FIELD_DATA = {
      "date": "2026-09-09",
      "slot": "점심",
      "people": 8,
-     "rating": 3.8,
+     "rating": 2.7,
      "wait": 15,
-     "text": "룸이 있어서 고객사 담당자분과 조용히 이야기 나눴어요. 주차가 돼서 짐 많은 날 차로 가기 좋았어요."
+     "text": "8명이 함께 앉을 수는 있었지만 불고기가 너무 달고 양이 적었어요. 15분 기다린 보람이 없었어요."
     },
     {
      "nick": "을지로직장인",
      "date": "2026-09-01",
      "slot": "점심",
      "people": 8,
-     "rating": 4.4,
+     "rating": 2.5,
      "wait": 5,
-     "text": "한우 불고기가 기대 이상이었어요. 8명이 한 테이블에 같이 앉을 수 있었어요."
+     "text": "고기 상태가 들쭉날쭉했어요. 고객사와 가기엔 다른 곳을 추천하고 싶어요."
     }
    ]
   },
@@ -1911,15 +1893,15 @@ window.FIELD_DATA = {
    "distance": 460,
    "walk": 7,
    "drive": 4,
-   "rating": 4.4,
-   "likes": 5,
+   "rating": 4.3,
+   "likes": 1,
    "maxPeople": 6,
    "groupSeat": true,
    "room": false,
    "reservation": false,
    "parking": true,
    "parkingDetail": "가상 전용 주차장 · 약 8대",
-   "wait": 5,
+   "wait": 10,
    "waitBand": "10분 이내",
    "situations": [
     "빠른 점심",
@@ -1953,15 +1935,6 @@ window.FIELD_DATA = {
      "rating": 4.3,
      "wait": 10,
      "text": "전용 주차장이 있어서 차로 이동한 날 편했어요. 예약이 안 돼서 단체로 갈 땐 조금 일찍 출발하세요."
-    },
-    {
-     "nick": "감사1팀막내",
-     "date": "2026-09-04",
-     "slot": "점심",
-     "people": 5,
-     "rating": 4.5,
-     "wait": 0,
-     "text": "연어 스테이크는 양도 넉넉하고 간이 딱 맞았어요. 단체석이 있어서 5명이 흩어지지 않고 앉았어요."
     }
    ]
   },
@@ -2235,8 +2208,8 @@ window.FIELD_DATA = {
    "distance": 760,
    "walk": 11,
    "drive": 5,
-   "rating": 4,
-   "likes": 5,
+   "rating": 2.7,
+   "likes": 1,
    "maxPeople": 8,
    "groupSeat": true,
    "room": true,
@@ -2274,18 +2247,18 @@ window.FIELD_DATA = {
      "date": "2026-09-22",
      "slot": "저녁",
      "people": 5,
-     "rating": 3.7,
+     "rating": 2.6,
      "wait": 15,
-     "text": "저녁에 5명이 가서 튀김 3개까지 추가해 푸짐하게 먹었어요. 룸 덕분에 업무 이야기하기 편했어요."
+     "text": "저녁에 15분 기다렸는데 튀김이 눅눅하게 나와서 아쉬웠어요."
     },
     {
      "nick": "회전율중시",
      "date": "2026-09-07",
      "slot": "점심",
      "people": 6,
-     "rating": 4.3,
+     "rating": 2.8,
      "wait": 5,
-     "text": "모둠분식 세트가 기대 이상이었어요. 단체석이 있어서 6명이 흩어지지 않고 앉았어요."
+     "text": "떡볶이 양념이 너무 달아서 팀원 반응이 별로였어요. 다음엔 다른 곳에 갈 것 같아요."
     }
    ]
   },
@@ -2495,15 +2468,15 @@ window.FIELD_DATA = {
    "distance": 480,
    "walk": 7,
    "drive": 4,
-   "rating": 4.3,
-   "likes": 3,
+   "rating": 4.2,
+   "likes": 1,
    "maxPeople": 6,
    "groupSeat": true,
    "room": false,
    "reservation": false,
    "parking": false,
    "parkingDetail": "전용 주차 없음",
-   "wait": 5,
+   "wait": 10,
    "waitBand": "10분 이내",
    "situations": [
     "빠른 점심",
@@ -2537,15 +2510,6 @@ window.FIELD_DATA = {
      "rating": 4.2,
      "wait": 10,
      "text": "예약이 안 돼서 단체로 갈 땐 조금 일찍 출발하세요. 회전이 빨라서 10분 안쪽으로 입장했어요."
-    },
-    {
-     "nick": "카페인충전",
-     "date": "2026-09-08",
-     "slot": "점심",
-     "people": 5,
-     "rating": 4.4,
-     "wait": 0,
-     "text": "딤섬과 완탕면 맛이 깔끔해서 다음 필드 때도 또 올 것 같아요. 5명이 한 테이블에 같이 앉을 수 있었어요."
     }
    ]
   },
