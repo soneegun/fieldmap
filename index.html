@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>필드맛지도</title>
+<meta name="description" content="필드워크로 낯선 지역에 간 팀이 동료 후기와 팀 조건으로 식사 장소를 빠르게 고르는 앱">
+<meta name="theme-color" content="#FFE9DF">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4C20 4 11 13 11 25c0 16 21 35 21 35s21-19 21-35C53 13 44 4 32 4z' fill='%23FD5108'/%3E%3Cpath d='M26 15v9a4 4 0 0 0 4 4v8M30 15v8M34 15v9a4 4 0 0 1-4 4M40 15c-3 2-3 9 0 11v10' stroke='%23fff' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/nanum-square-round.css">
+<link rel="stylesheet" href="lib/leaflet.css">
+<style>
+/* 레이아웃: 모바일 앱 한 열(최대 480px). 상단은 복숭아빛 그라데이션 + 물결, 본문은 따뜻한 흰색. */
+:root{
+  --o900:#FD5108;   /* 포인트(로고의 진한 주황) — 메인 버튼, 선택 상태, 핀 */
+  --o800:#E24600;   /* 눌림 */
+  --o-ink:#C23A00;  /* 흰 배경 위 주황 글자 */
+  --o100:#FFE5D8;   /* 선택된 칩, 추천 이유 바 */
+  --o50:#FFF3EC;    /* 입력창, 배지, 섹션 배경 */
+  --peach1:#FFD2BF; --peach2:#FFE7E5; --peach3:#FFF6F2;
+  --bg:#FFFBF8; --surface:#FFFFFF;
+  --t900:#141414; --t600:#5E5753; --t400:#9A918C;
+  --line:#F0E4DC; --disabled:#FFBFA3; --star:#F2B01E; --error:#D92D20; --ok:#1F8A5B;
+  --f-body:"Pretendard",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-title:"NanumSquareRound","Pretendard",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --tabh:64px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:linear-gradient(160deg,var(--peach2),var(--bg) 40%);color:var(--t900);font-family:var(--f-body);font-size:14px;line-height:1.5;letter-spacing:-.01em;-webkit-font-smoothing:antialiased;color-scheme:light}
+button,input,select,textarea{font:inherit;color:inherit;letter-spacing:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--o900);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+#app{max-width:480px;margin:0 auto;min-height:100%;background:var(--bg);position:relative;box-shadow:0 0 40px rgba(253,81,8,.08)}
+.scr{min-height:100vh;padding-bottom:calc(var(--tabh) + 110px)}
+.scr.notab{padding-bottom:110px}
+.t-title{font-family:var(--f-title);font-weight:800;letter-spacing:-.03em;line-height:1.3}
+h1,h2,h3{margin:0}
+
+/* 그라데이션 히어로 + 물결 */
+.hero{position:relative;background:
+  radial-gradient(110% 90% at 100% 0%,var(--peach1) 0%,rgba(255,210,191,0) 62%),
+  radial-gradient(90% 80% at 0% 0%,var(--peach2) 0%,rgba(255,231,229,0) 60%),
+  linear-gradient(180deg,#FFEDE5 0%,var(--peach3) 100%);
+  padding:16px 16px 56px;overflow:hidden}
+.wave{position:absolute;left:0;right:0;bottom:-1px;width:100%;height:48px;display:block}
+.wave path{fill:var(--bg)}
+.logo{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-title);font-weight:800;font-size:17px;letter-spacing:-.03em;color:var(--t900);text-decoration:none;border:0;background:none;padding:0}
+.logo svg{width:24px;height:24px}
+.topline{display:flex;align-items:center;justify-content:space-between;min-height:44px}
+.iconbtn{width:44px;height:44px;display:grid;place-items:center;border:0;background:none;border-radius:12px;color:var(--t900);position:relative}
+.iconbtn svg{width:24px;height:24px}
+.iconbtn .dot{position:absolute;top:6px;right:5px;min-width:16px;height:16px;border-radius:8px;background:var(--o900);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;padding:0 4px}
+.ic{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+
+/* 로그인 */
+.auth-hero{height:40vh;min-height:260px;max-height:340px;padding-bottom:0}
+.auth-hero .illu{position:absolute;left:50%;bottom:30px;transform:translateX(-50%);width:260px;max-width:72%}
+.auth-body{padding:4px 24px 32px;display:grid;gap:14px}
+.auth-head{text-align:center;position:relative;margin-bottom:10px}
+.auth-head h1{font-size:26px;color:var(--o-ink)}
+.auth-head p{margin:6px 0 0;color:var(--t400)}
+.auth-head .deco{position:absolute;right:0;top:-38px;width:28px;height:28px;transform:rotate(-12deg);color:var(--o800)}
+.field{position:relative;display:flex;align-items:center;gap:12px;height:52px;border-radius:14px;background:var(--o50);padding:0 14px;border:1.5px solid transparent;transition:background .2s,border-color .2s}
+.field:focus-within{background:var(--o100);border-color:var(--o900)}
+.field.err{border-color:var(--error)}
+.field>svg{width:20px;height:20px;color:var(--o900);flex:none}
+.field input,.field select{flex:1;min-width:0;border:0;background:none;outline:none;height:100%;font-size:15px;font-weight:600;color:var(--t900);appearance:none;-webkit-appearance:none}
+.field select:invalid{color:var(--t400);font-weight:400}
+.field input::placeholder{color:var(--t400);font-weight:400}
+.field .eye{border:0;background:none;width:36px;height:36px;display:grid;place-items:center;color:var(--t600);margin-right:-8px}
+.field .eye svg{width:20px;height:20px}
+.field .okc{width:20px;height:20px;color:var(--ok)}
+.msg{font-size:12px;font-weight:600;margin:-6px 4px 0;min-height:0}
+.msg.e{color:var(--error)} .msg.o{color:var(--ok)} .msg.n{color:var(--t400);font-weight:400}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:54px;border:0;border-radius:999px;background:var(--o900);color:#fff;font-weight:800;font-size:16px;box-shadow:0 8px 20px rgba(253,81,8,.25);transition:background .2s,box-shadow .2s}
+.btn:active{background:var(--o800)}
+.btn:disabled{background:var(--disabled);box-shadow:none;cursor:not-allowed}
+.btn2{display:flex;align-items:center;justify-content:center;height:52px;border-radius:999px;border:1px solid var(--o900);background:var(--surface);color:var(--o-ink);font-weight:800;font-size:15px;width:100%}
+.btn2:active{background:var(--o50)}
+.tbtn{border:0;background:none;color:var(--o-ink);font-weight:600;font-size:14px;padding:10px 4px;min-height:44px}
+.authlink{text-align:center;color:var(--t400);margin-top:4px}
+.authlink button{border:0;background:none;color:var(--o-ink);font-weight:800;text-decoration:underline;padding:10px 4px}
+
+/* 홈 */
+.home-hero{padding-bottom:84px}
+.home-hero h1{font-size:28px;margin-top:14px}
+.home-hero p{margin:6px 0 0;color:var(--t600);max-width:62%}
+.home-hero .illu{position:absolute;right:6px;bottom:44px;width:132px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.search-card{margin:-56px 16px 0;position:relative;z-index:3;border-radius:20px;border:0;box-shadow:0 10px 30px rgba(253,81,8,.13);padding:18px 16px 12px}
+.qhead{display:flex;align-items:center;gap:6px;font-weight:800;font-size:16px;margin-bottom:10px}
+.qhead svg{width:20px;height:20px;color:var(--o900)}
+.sugg{margin-top:6px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.sugg button{display:flex;width:100%;align-items:center;gap:10px;border:0;background:none;padding:12px 14px;text-align:left;min-height:44px}
+.sugg button+button{border-top:1px solid var(--line)}
+.sugg small{color:var(--t400);margin-left:auto}
+.sec{padding:22px 16px 0}
+.sitgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sit{display:grid;justify-items:center;gap:4px;padding:10px 2px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--t600);font-weight:600;font-size:13px;min-height:68px;white-space:nowrap}
+.sit svg{width:22px;height:22px}
+.sit.on{background:var(--o100);border-color:var(--o100);color:var(--o-ink)}
+.dd3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dd label{display:block;font-size:12px;color:var(--t600);font-weight:600;margin:0 0 6px 4px}
+.sel{position:relative}
+.sel select{width:100%;height:48px;border-radius:14px;border:0;background:var(--o50);padding:0 30px 0 12px;font-weight:600;font-size:14px;appearance:none;-webkit-appearance:none}
+.sel:after{content:"";position:absolute;right:13px;top:50%;width:7px;height:7px;border-right:1.75px solid var(--t600);border-bottom:1.75px solid var(--t600);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.morerow{display:flex;align-items:center;gap:12px;width:100%;margin-top:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:12px 14px;text-align:left;min-height:56px}
+.morerow svg{width:22px;height:22px;color:var(--o900);flex:none}
+.morerow b{display:block;font-size:14px}
+.morerow small{color:var(--t400)}
+.morerow .cnt{margin-left:auto;background:var(--o900);color:#fff;border-radius:999px;font-size:12px;font-weight:800;padding:2px 8px}
+.morerow .chev{margin-left:auto;width:18px;height:18px;color:var(--t400)}
+.morerow .cnt+.chev{margin-left:0}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pillchip{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;background:var(--o50);color:var(--t900);font-weight:600;padding:8px 14px;min-height:40px}
+.pillchip svg{width:16px;height:16px;color:var(--o900)}
+.invite{display:flex;align-items:center;gap:12px;margin:22px 16px 0;padding:14px;border-radius:14px;background:var(--o50)}
+.invite .b{width:40px;height:40px;border-radius:50%;background:#fff;display:grid;place-items:center;flex:none;color:var(--o900)}
+.invite .b svg{width:20px;height:20px}
+.invite p{margin:0;font-size:13px;color:var(--t600);flex:1}
+.invite p b{display:block;color:var(--t900);font-size:14px}
+.cta{position:fixed;left:0;right:0;bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px));z-index:40;padding:10px 16px 12px;pointer-events:none}
+.cta.notab{bottom:0;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+.cta>div{max-width:448px;margin:0 auto;pointer-events:auto}
+.cta .cap{text-align:center;font-size:12px;color:var(--t600);margin-bottom:6px;background:rgba(255,251,248,.9);border-radius:8px}
+.cta:before{content:"";position:absolute;inset:0;background:linear-gradient(to top,var(--bg) 60%,rgba(255,251,248,0));z-index:-1}
+
+/* 하단 탭 */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:50;background:rgba(255,255,255,.97);backdrop-filter:blur(10px);box-shadow:0 -1px 0 var(--line),0 -4px 14px rgba(0,0,0,.04);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabbar>div{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);height:var(--tabh)}
+.tabbar button{border:0;background:none;display:grid;justify-items:center;align-content:center;gap:3px;color:var(--t400);font-size:12px;font-weight:600}
+.tabbar svg{width:24px;height:24px}
+.tabbar button.on{color:var(--o-ink)}
+
+/* 상단 바 (하위 화면) */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;display:grid;grid-template-columns:44px 1fr 88px;align-items:center;padding:4px 8px;background:rgba(255,251,248,.96);backdrop-filter:blur(8px)}
+.bar .logo{justify-self:center;font-size:16px}
+.bar .r{display:flex;justify-content:flex-end}
+.bar.plain{grid-template-columns:44px 1fr 44px}
+.bar h1{text-align:center;font-size:18px}
+
+/* 목록 */
+.regionbar{display:flex;align-items:center;gap:8px;margin:4px 16px 0;padding:6px 6px 6px 14px;border-radius:999px;background:var(--o50)}
+.regionbar svg{width:18px;height:18px;color:var(--o900);flex:none}
+.regionbar b{font-size:15px}
+.regionbar .tbtn{margin-left:auto;padding:6px 10px;min-height:40px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:12px 16px 0;padding:4px;border-radius:999px;background:var(--o50)}
+.seg button{border:0;border-radius:999px;background:none;height:40px;font-weight:800;color:var(--t600)}
+.seg button.on{background:var(--o900);color:#fff}
+.chiprow{position:relative;margin-top:12px}
+.chiprow .scroll{display:flex;gap:6px;overflow-x:auto;padding:0 40px 2px 16px;scrollbar-width:none}
+.chiprow .scroll::-webkit-scrollbar{display:none}
+.chiprow:after{content:"";position:absolute;right:0;top:0;bottom:0;width:40px;background:linear-gradient(to right,rgba(255,251,248,0),var(--bg));pointer-events:none}
+.fchip{flex:none;display:inline-flex;align-items:center;gap:5px;border:0;border-radius:999px;background:var(--o100);color:var(--o-ink);font-weight:600;font-size:13px;padding:0 12px;height:36px;white-space:nowrap}
+.fchip.f{background:var(--surface);color:var(--t900);border:1px solid var(--line)}
+.fchip svg{width:16px;height:16px}
+.reshead{display:flex;align-items:center;gap:8px;margin:16px 16px 0}
+.reshead h2{font-size:17px;flex:1}
+.reshead .sel select{height:38px;background:var(--surface);border:1px solid var(--line);font-size:13px;padding-right:28px}
+.caption{display:flex;align-items:center;gap:5px;margin:6px 16px 0;font-size:12px;color:var(--t400)}
+.caption svg{width:14px;height:14px;flex:none}
+.list{display:grid;gap:12px;padding:12px 16px 0}
+.rc{display:grid;grid-template-columns:104px 1fr;gap:14px;padding:16px;cursor:pointer;text-align:left;width:100%;position:relative}
+.rc:hover{border-color:#F3CDBB}
+.ph{width:104px;height:104px;border-radius:12px;overflow:hidden;background:linear-gradient(145deg,var(--o50),var(--peach1));display:grid;place-items:center;color:var(--o-ink);font-weight:800;font-size:13px;position:relative}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph span{opacity:.75}
+.rc .info{min-width:0;display:grid;gap:2px;align-content:start}
+.rc .nm{display:flex;align-items:center;gap:6px;padding-right:34px}
+.rc .nm b{font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ex{flex:none;font-size:11px;color:var(--t600);background:#F4F0ED;border-radius:999px;padding:1px 7px;font-weight:600}
+.sub{color:var(--t600);font-size:13px}
+.rate{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:600}
+.rate svg{width:14px;height:14px;fill:var(--star)}
+.badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.bdg{font-size:12px;border-radius:999px;background:var(--o50);color:var(--t900);padding:2px 9px;font-weight:600}
+.bdg.g{background:#F4F0ED;color:var(--t600);font-weight:400}
+.why{grid-column:1 / -1;display:flex;align-items:center;gap:6px;height:32px;border-radius:8px;background:var(--o100);color:var(--o-ink);font-size:12px;font-weight:600;padding:0 10px;white-space:nowrap;overflow:hidden}
+.why svg{width:14px;height:14px;flex:none}
+.waitline{grid-column:1 / -1;display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-6px}
+.waitline svg{width:14px;height:14px;flex:none;color:var(--t400)}
+.waitline span{overflow:hidden;text-overflow:ellipsis}
+.rc .acts{position:absolute;top:8px;right:8px;display:flex}
+.save svg{width:22px;height:22px}
+.save.on svg{fill:var(--o900);stroke:var(--o900)}
+.empty{text-align:center;padding:36px 20px;display:grid;gap:14px;justify-items:center}
+.empty p{margin:0;color:var(--t600);font-size:15px;max-width:300px}
+.empty .btn{max-width:280px}
+#map{height:calc(100vh - 520px);min-height:260px;margin:12px 16px 0;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#F6EEE9}
+.pin{transform:translate(-50%,-100%);display:inline-flex;flex-direction:column;align-items:center}
+.pin b{min-width:26px;height:26px;border-radius:13px;padding:0 7px;background:#fff;color:var(--o-ink);border:2px solid var(--o900);display:grid;place-items:center;font-size:12px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,.18);white-space:nowrap}
+.pin.top b,.pin.on b{background:var(--o900);color:#fff}
+.pin i{width:2px;height:6px;background:var(--o900)}
+.office{transform:translate(-50%,-50%);display:inline-block;background:var(--t900);color:#fff;font-weight:800;font-size:12px;border-radius:999px;padding:4px 10px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.leaflet-div-icon{background:none;border:0}
+.mapcard{padding:12px 16px 0}
+.mapcard>.card{box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.tilewarn{position:absolute;left:52px;right:8px;top:8px;z-index:500;background:rgba(255,255,255,.95);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--t600)}
+
+/* 상세 */
+.dhero{height:220px;margin:0;background:linear-gradient(145deg,var(--o50),var(--peach1));display:grid;place-items:center;color:var(--o-ink);font-weight:800;overflow:hidden}
+.dhero img{width:100%;height:100%;object-fit:cover}
+.dhead{padding:16px 16px 0;display:grid;gap:4px}
+.dhead .nm{display:flex;align-items:center;gap:8px}
+.dhead h1{font-size:22px}
+.dhead .meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--t600);font-size:13px}
+.dhead .meta .sep{width:1px;height:12px;background:var(--line)}
+.dhead .meta svg{width:14px;height:14px}
+.dacts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 16px 0}
+.dacts button{display:grid;justify-items:center;gap:4px;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 0;font-size:12px;font-weight:600;color:var(--t900);min-height:64px}
+.dacts svg{width:22px;height:22px;color:var(--t600)}
+.dacts button.on svg{fill:var(--o900);stroke:var(--o900);color:var(--o900)}
+.box{margin:12px 16px 0;padding:16px}
+.box h2{font-size:16px;margin-bottom:10px;font-weight:800}
+.mrow{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.mrow:last-of-type{border:0}
+.asof{font-size:12px;color:var(--t400);margin-top:6px;text-align:right}
+.ugrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ucell{display:flex;align-items:center;gap:10px;background:var(--o50);border-radius:12px;padding:10px 12px}
+.ucell svg{width:22px;height:22px;color:var(--o900);flex:none}
+.ucell b{display:block;font-size:14px}
+.ucell small{color:var(--t600);font-size:12px}
+.ucell.no b{color:var(--t400)}
+.urows{margin-top:10px;display:grid;gap:6px;font-size:13px;color:var(--t600)}
+.urows div{display:flex;gap:8px}
+.urows span:first-child{width:56px;color:var(--t400);flex:none}
+.waitbig{display:flex;align-items:center;gap:12px}
+.waitbig .c{width:44px;height:44px;border-radius:50%;background:var(--o50);display:grid;place-items:center;color:var(--o900)}
+.waitbig .c svg{width:24px;height:24px}
+.waitbig b{font-family:var(--f-title);font-size:22px;font-weight:800}
+.waitbig small{display:block;color:var(--t600);font-size:12px}
+.rv{padding:12px 0;border-top:1px solid var(--line)}
+.rv:first-of-type{border:0;padding-top:0}
+.rv .h{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--t600);flex-wrap:wrap}
+.rv .h b{color:var(--t900)}
+.rv .s{display:flex;align-items:center;gap:8px;margin-top:2px;font-size:13px;font-weight:600}
+.rv .s .st{display:flex}
+.rv .s .st svg{width:14px;height:14px;fill:var(--star)}
+.rv .s .st svg.off{fill:#E9E1DB}
+.rv p{margin:6px 0 0;font-size:14px}
+.mine{font-size:11px;background:var(--o100);color:var(--o-ink);border-radius:999px;padding:0 7px;font-weight:800}
+
+/* 후기 쓰기 */
+.form{display:grid;gap:20px;padding:8px 16px 0}
+.form .q{font-size:14px;font-weight:600;margin-bottom:8px}
+.form .sel select{height:52px;font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:0 16px;height:44px;font-weight:600;color:var(--t600)}
+.chip.on{background:var(--o100);border-color:var(--o100);color:var(--o-ink)}
+.stepper{display:inline-flex;align-items:center;background:var(--o50);border-radius:14px;overflow:hidden}
+.stepper button{width:48px;height:48px;border:0;background:none;font-size:20px;color:var(--o-ink)}
+.stepper output{min-width:64px;text-align:center;font-weight:800;font-size:16px}
+.stars{display:flex;gap:4px}
+.stars button{border:0;background:none;padding:4px;width:44px;height:44px}
+.stars svg{width:34px;height:34px;fill:#EDE4DE}
+.stars button.on svg{fill:var(--star)}
+.ta{width:100%;min-height:110px;border:1.5px solid transparent;border-radius:14px;background:var(--o50);padding:12px 14px;font-size:15px;resize:vertical;outline:none}
+.ta:focus{background:var(--o100);border-color:var(--o900)}
+.ta::placeholder{color:var(--t400)}
+.who{font-size:13px;color:var(--t600);text-align:center}
+.datein{width:100%;height:52px;border:0;border-radius:14px;background:var(--o50);padding:0 14px;font-weight:600;font-size:15px}
+
+/* 시트 · 다이얼로그 · 토스트 */
+.ov{position:fixed;inset:0;z-index:100;background:rgba(20,20,20,.42);display:flex;align-items:flex-end;justify-content:center;animation:fade .15s}
+.ov.center{align-items:center;padding:24px}
+@keyframes fade{from{opacity:0}}
+.sheet{width:100%;max-width:480px;max-height:88vh;overflow:auto;background:var(--surface);border-radius:22px 22px 0 0;padding:10px 16px calc(16px + env(safe-area-inset-bottom,0px));animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(40px)}}
+.sheet .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 12px}
+.sheet h2{font-size:18px;margin-bottom:6px}
+.sheet .grp{padding:14px 0;border-bottom:1px solid var(--line)}
+.sheet .grp:last-of-type{border:0}
+.sheet .grp .q{font-weight:800;margin-bottom:10px}
+.sheet .foot{display:grid;grid-template-columns:1fr 2fr;gap:8px;padding-top:12px;position:sticky;bottom:0;background:var(--surface)}
+.dialog{background:var(--surface);border-radius:20px;padding:22px 18px 16px;width:100%;max-width:340px;text-align:center;display:grid;gap:14px}
+.dialog p{margin:0;font-size:15px;font-weight:600}
+.dialog small{color:var(--t600);font-weight:400;display:block;margin-top:6px;font-size:13px}
+.dialog .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dialog .two .btn,.dialog .two .btn2{height:48px;font-size:15px}
+.copybox{display:flex;align-items:center;gap:8px;background:var(--o50);border-radius:12px;padding:10px 12px;font-weight:800;font-size:16px;justify-content:center;user-select:all}
+.toast{position:fixed;left:50%;bottom:calc(var(--tabh) + 90px);transform:translateX(-50%);z-index:200;background:var(--t900);color:#fff;padding:11px 16px;border-radius:12px;font-size:14px;font-weight:600;max-width:calc(100% - 32px);width:max-content;box-shadow:0 8px 20px rgba(0,0,0,.2);animation:fade .2s}
+.note{font-size:11px;color:var(--t400);text-align:center;padding:24px 16px 0}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<nav class="tabbar" id="tabbar" hidden>
+  <div>
+    <button data-tab="home"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>탐색</button>
+    <button data-tab="saved"><svg class="ic" viewBox="0 0 24 24"><path d="M6.5 3.5h11v17l-5.5-4-5.5 4z"/></svg>저장</button>
+    <button data-tab="write"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>후기 쓰기</button>
+  </div>
+</nav>
+<div id="layer"></div>
+
+<script src="data.js"></script>
+<script src="lib/leaflet.js"></script>
+<script>
+(function(){
+'use strict';
+const D = window.FIELD_DATA;
+const R = D.restaurants;
+const byId = Object.fromEntries(R.map(r => [r.id, r]));
+const REGIONS = Object.keys(D.anchors);
+const ALIAS = {'여의도 IFC':['여의도','IFC','국제금융','여의나루'], '마곡 연구단지':['마곡','연구단지','강서','마곡나루'], '판교 테크노밸리':['판교','테크노','분당','성남'], '을지로 센터원':['을지로','센터원','중구','시청','종로']};
+const COMPANIES = ['가온회계법인(예시)','누리회계법인(예시)','다솜컨설팅(예시)','라온세무법인(예시)'];
+const PRICE_ASOF = '2026.10.01';
+
+/* ---------- 아이콘 ---------- */
+const I = {
+  pin:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>',
+  back:'<svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
+  bookmark:'<svg class="ic" viewBox="0 0 24 24"><path d="M6.5 3.5h11v17l-5.5-4-5.5 4z"/></svg>',
+  share:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v7a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-7"/></svg>',
+  phone:'<svg class="ic" viewBox="0 0 24 24"><path d="M5 4h3.5l1.5 4-2 1.5a11 11 0 0 0 6.5 6.5l1.5-2 4 1.5V19a1.5 1.5 0 0 1-1.6 1.5C10.6 20 4 13.4 3.5 5.6A1.5 1.5 0 0 1 5 4z"/></svg>',
+  route:'<svg class="ic" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8 18h7.5a3.25 3.25 0 0 0 0-6.5h-7a3.25 3.25 0 0 1 0-6.5H16"/></svg>',
+  clock:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+  people:'<svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.2A4.5 4.5 0 0 1 20.5 19"/></svg>',
+  brief:'<svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V5.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3.5 12.5h17"/></svg>',
+  glass:'<svg class="ic" viewBox="0 0 24 24"><path d="M7 3.5h10l-1 8a4 4 0 0 1-8 0z"/><path d="M12 15.5v5M8.5 20.5h7M7.6 8h8.8"/></svg>',
+  search:'<svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>',
+  locate:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2"/></svg>',
+  sliders:'<svg class="ic" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>',
+  chev:'<svg class="ic chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>',
+  check:'<svg class="ic" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  okc:'<svg class="ic okc" viewBox="0 0 24 24" style="stroke-width:2.2"><circle cx="12" cy="12" r="9"/><path d="M8 12.3l2.8 2.7L16 9.6"/></svg>',
+  star:'<svg viewBox="0 0 24 24"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8z"/></svg>',
+  pencil:'<svg class="ic" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
+  building:'<svg class="ic" viewBox="0 0 24 24"><rect x="4.5" y="3.5" width="10" height="17" rx="1"/><path d="M14.5 9.5h5v11h-5M8 7.5h3M8 11h3M8 14.5h3M10 20.5v-3"/></svg>',
+  user:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.8"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>',
+  lock:'<svg class="ic" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>',
+  eye:'<svg class="ic" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>',
+  eyeoff:'<svg class="ic" viewBox="0 0 24 24"><path d="M4 4l16 16M10 6a9 9 0 0 1 2-.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-2.6 3.4M6.2 7.6A16 16 0 0 0 2.5 12s3.5 6.5 9.5 6.5a9 9 0 0 0 4-.9"/></svg>',
+  seat:'<svg class="ic" viewBox="0 0 24 24"><path d="M6 12V6.5A1.5 1.5 0 0 1 7.5 5h9A1.5 1.5 0 0 1 18 6.5V12"/><path d="M4.5 12h15v3h-15zM6 15v4M18 15v4"/></svg>',
+  cal:'<svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>',
+  car:'<svg class="ic" viewBox="0 0 24 24"><path d="M5 16.5V12l2-5h10l2 5v4.5"/><path d="M3.5 12h17v4.5h-17z"/><circle cx="7.5" cy="16.5" r="1.6"/><circle cx="16.5" cy="16.5" r="1.6"/></svg>',
+  door:'<svg class="ic" viewBox="0 0 24 24"><path d="M6 20.5V4.5A1 1 0 0 1 7 3.5h10a1 1 0 0 1 1 1v16M3.5 20.5h17"/><circle cx="14.5" cy="12.5" r=".8"/></svg>',
+  utensils:'<svg class="ic" viewBox="0 0 24 24"><path d="M7 3v7a2.5 2.5 0 0 0 2.5 2.5V21M9.5 3v6M12 3v7a2.5 2.5 0 0 1-2.5 2.5M17.5 3c-2 1.5-2.5 6-.5 8.5h.5V21"/></svg>',
+  fork:'<svg viewBox="0 0 64 64"><path d="M32 4C20 4 11 13 11 25c0 16 21 35 21 35s21-19 21-35C53 13 44 4 32 4z" fill="#FD5108"/><path d="M26 15v9a4 4 0 0 0 4 4v8M30 15v8M34 15v9a4 4 0 0 1-4 4M40 15c-3 2-3 9 0 11v10" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></svg>'
+};
+const SIT_ICON = {'빠른 점심':I.clock,'팀 식사':I.people,'고객사 동반':I.brief,'회식':I.glass};
+const WAVE = '<svg class="wave" viewBox="0 0 400 48" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30 C70 6 140 6 205 24 C270 42 335 44 400 20 L400 48 L0 48 Z"/></svg>';
+const LOGO = `<span class="logo">${I.fork}필드맛지도</span>`;
+
+/* 미니 지도 일러스트 (평면 아이소메트릭) */
+function illu(){
+  return `<svg class="illu" viewBox="0 0 260 170" aria-hidden="true">
+    <path d="M130 30 L250 92 L130 154 L10 92 Z" fill="#FFF3EC"/>
+    <path d="M10 92 L130 154 L130 162 L10 100 Z" fill="#FFD9C6"/><path d="M130 154 L250 92 L250 100 L130 162 Z" fill="#FFC4A8"/>
+    <path d="M52 70 L178 135 M88 52 L214 117" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+    <path d="M40 106 L160 44 M100 136 L218 76" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+    <g><path d="M150 58 L176 71 L176 41 L150 28 Z" fill="#FFC4A8"/><path d="M176 71 L196 61 L196 31 L176 41 Z" fill="#FFAE88"/><path d="M150 28 L170 18 L196 31 L176 41 Z" fill="#FFE5D8"/>
+      <path d="M156 40 l6 3 M156 48 l6 3 M164 44 l6 3 M164 52 l6 3" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></g>
+    <g><path d="M60 100 L82 111 L82 92 L60 81 Z" fill="#FFC4A8"/><path d="M82 111 L100 102 L100 83 L82 92 Z" fill="#FFAE88"/><path d="M60 81 L78 72 L100 83 L82 92 Z" fill="#FFE5D8"/></g>
+    <g><path d="M184 112 L200 120 L200 106 L184 98 Z" fill="#FFC4A8"/><path d="M200 120 L214 113 L214 99 L200 106 Z" fill="#FFAE88"/><path d="M184 98 L198 91 L214 99 L200 106 Z" fill="#FFE5D8"/></g>
+    <circle cx="120" cy="72" r="9" fill="#FFAE88"/><rect x="119" y="78" width="2.4" height="8" rx="1" fill="#E89A72"/>
+    <circle cx="214" cy="80" r="7.5" fill="#FFAE88"/><rect x="213" y="85" width="2.2" height="7" rx="1" fill="#E89A72"/>
+    <circle cx="44" cy="96" r="7" fill="#FFAE88"/><rect x="43" y="101" width="2.2" height="6" rx="1" fill="#E89A72"/>
+    <path d="M146 112 C150 100 160 98 168 104" stroke="#FD5108" stroke-width="2.4" stroke-dasharray="3 5" fill="none" stroke-linecap="round"/>
+    <g transform="translate(118 74)"><path d="M14 0C6 0 0 6 0 14c0 10 14 22 14 22s14-12 14-22C28 6 22 0 14 0z" fill="#FD5108"/><path d="M10 7v6a2.5 2.5 0 0 0 2.5 2.5v6M12.5 7v5M15 7v6a2.5 2.5 0 0 1-2.5 2.5M19 7c-2 1.5-2 6 0 7.5v6.5" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/></g>
+    <g transform="translate(166 84)"><path d="M7 0C3 0 0 3 0 7c0 5 7 11 7 11s7-6 7-11c0-4-3-7-7-7z" fill="#F2B01E"/><circle cx="7" cy="7" r="2.5" fill="#fff"/></g>
+    <g transform="translate(70 58)"><path d="M6 0C2.7 0 0 2.7 0 6c0 4.3 6 9.5 6 9.5s6-5.2 6-9.5C12 2.7 9.3 0 6 0z" fill="#FF8A5B"/><circle cx="6" cy="6" r="2.2" fill="#fff"/></g>
+  </svg>`;
+}
+
+/* ---------- 저장소 ---------- */
+const store = {
+  get(k,d){ try{ const v = localStorage.getItem('fmv2_'+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem('fmv2_'+k, JSON.stringify(v)); }catch(e){} }
+};
+function hash(s){ let h = 2166136261; for (const c of s){ h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return (h>>>0).toString(16); }
+// 시연용 기본 계정과 기존 별칭 (모두 가상)
+let users = store.get('users', null);
+if (!users){
+  users = [{company:COMPANIES[0], nick:'필드맛지도', pw:hash('test1234')}];
+  const nicks = [...new Set(R.flatMap(r => r.reviews.map(v => v.nick)))];
+  nicks.forEach(n => users.push({company:COMPANIES[0], nick:n, pw:hash('seed-'+n)}));
+  store.set('users', users);
+}
+let session = store.get('session', null);
+let saved = store.get('saved', {});          // {별칭키: [id]}
+let myReviews = store.get('reviews', {});    // {식당id: [후기]}
+let recent = store.get('recent', []);
+const ukey = () => session ? session.company + '/' + session.nick : '_';
+const mySaved = () => saved[ukey()] || [];
+
+const Q = Object.assign({region:null, sit:'빠른 점심', people:'3~4', price:'all', walk:'all', cuisine:'all', wait:'all', extras:[]}, store.get('query', {}));
+if (Q.region && !REGIONS.includes(Q.region)) Q.region = null;
+let sortBy = 'match', listView = 'list';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const won = n => Number(n).toLocaleString('ko-KR') + '원';
+const dot = d => String(d).replace(/-/g, '.');
+const md = d => dot(d).slice(5);
+
+/* ---------- 조건 · 필터 ---------- */
+const PEOPLE = [['2','2명',2],['3~4','3~4명',4],['5~6','5~6명',6],['7+','7명 이상',7]];
+const PRICE = [['all','전체'],['1만원 이하','1만 원 미만'],['1만~2만원','1만~2만 원'],['2만원 이상','2만 원 이상']];
+const WALK = [['all','전체'],['5','5분 이내'],['10','10분 이내'],['15','15분 이내']];
+const CUISINE = ['all','한식','일식','중식','양식','분식','고기'];
+const WAIT = [['all','상관없음'],['0','바로 입장'],['10','10분 이내'],['20','20분 이내']];
+const EXTRAS = [['reservation','예약 가능'],['parking','주차 가능'],['groupSeat','단체석 있음']];
+const need = () => PEOPLE.find(p => p[0]===Q.people)[2];
+
+function reviewsOf(r){ return [...(myReviews[r.id]||[]), ...r.reviews].sort((a,b) => b.date.localeCompare(a.date)); }
+function ratingOf(r){ const v = reviewsOf(r); return v.reduce((s,x)=>s+Number(x.rating),0)/v.length; }
+function waitOf(r){ const v = reviewsOf(r); const l = v.filter(x=>x.slot==='점심'); const use = l.length ? l : v; return {avg: Math.round(use.reduce((s,x)=>s+Number(x.wait),0)/use.length), lunch: !!l.length, n: v.length, last: v[0].date}; }
+
+function matches(r, q){
+  const p = PEOPLE.find(x => x[0]===q.people)[2];
+  return r.region===q.region
+    && (!q.sit || r.situations.includes(q.sit))
+    && r.maxPeople >= p
+    && (q.price==='all' || r.priceBand===q.price)
+    && (q.walk==='all' || r.walk <= +q.walk)
+    && (q.cuisine==='all' || r.cuisine===q.cuisine)
+    && (q.wait==='all' || r.wait <= +q.wait)
+    && q.extras.every(e => r[e]);
+}
+const results = () => R.filter(r => matches(r, Q));
+function score(r){ return ratingOf(r)*20 + Math.min(r.likes,40)*.4 - r.wait*.5 - r.walk*.7 + (r.situations[0]===Q.sit ? 4 : 0); }
+function sorted(list){
+  const f = {match:(a,b)=>score(b)-score(a), near:(a,b)=>a.walk-b.walk, rating:(a,b)=>ratingOf(b)-ratingOf(a)}[sortBy];
+  return [...list].sort(f);
+}
+function reason(r){
+  if (Q.sit==='빠른 점심' && r.wait<=5) return r.wait===0 ? '바로 입장할 수 있어 빠른 점심에 맞아요' : '대기가 짧아 빠른 점심에 맞아요';
+  if (Q.sit==='고객사 동반' && r.room) return '룸이 있어 고객사와 조용히 식사하기 좋아요';
+  if (Q.sit==='회식' && r.groupSeat) return `${r.maxPeople}명까지 앉을 수 있어 회식에 맞아요`;
+  if (Q.sit==='팀 식사' && r.groupSeat) return '단체석이 있어 팀이 함께 앉기 좋아요';
+  if (Q.price!=='all' && Q.walk!=='all') return '도보 이동과 가격 조건에 맞아요';
+  if (Q.price!=='all') return '선택한 가격대와 인원 조건에 맞아요';
+  if (Q.walk!=='all') return '도보 이동과 인원 조건에 맞아요';
+  return `${need()}명 이상 함께 앉을 수 있어요`;
+}
+function persistQ(){ store.set('query', Q); }
+
+/* ---------- 라우팅 ---------- */
+let route = {name:'login', arg:null};
+function go(hash){ if (location.hash === '#'+hash) render(); else location.hash = hash; }
+function parse(){
+  const h = location.hash.slice(1) || 'home';
+  const [name, arg] = h.split('/');
+  return {name, arg: arg ? decodeURIComponent(arg) : null};
+}
+window.addEventListener('hashchange', render);
+function render(){
+  route = parse();
+  if (!session && route.name!=='signup') route.name = 'login';
+  if (session && (route.name==='login' || route.name==='signup')) route.name = 'home';
+  if (route.name==='list' && !Q.region) route.name = 'home';
+  closeLayer();
+  const views = {login:vLogin, signup:vSignup, home:vHome, list:vList, detail:vDetail, saved:vSaved, write:vWrite};
+  (views[route.name] || vHome)();
+  const tab = {home:'home', list:'home', saved:'saved', write:'write'}[route.name];
+  $('#tabbar').hidden = !tab;
+  document.querySelectorAll('#tabbar [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab===tab));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('#tabbar [data-tab]').forEach(b => b.onclick = () => {
+  const t = b.dataset.tab;
+  if (route.name==='write' && writeDirty()) return confirmLeave(() => go(t));
+  go(t);
+});
+
+/* ---------- 1-1 로그인 ---------- */
+function companySelect(id, val){
+  return `<div class="field">${I.building}<select id="${id}" required aria-label="소속회사"><option value="" disabled ${val?'':'selected'} hidden>소속회사를 선택해 주세요</option>${COMPANIES.map(c=>`<option ${c===val?'selected':''}>${esc(c)}</option>`).join('')}</select></div>`;
+}
+function pwField(id, ph){
+  return `<div class="field" id="${id}Wrap">${I.lock}<input id="${id}" type="password" placeholder="${ph}" autocomplete="${id==='pw'?'current-password':'new-password'}" aria-label="${ph}"><button type="button" class="eye" data-eye="${id}" aria-label="비밀번호 보기">${I.eye}</button></div>`;
+}
+function bindEyes(){
+  document.querySelectorAll('[data-eye]').forEach(b => b.onclick = () => {
+    const i = document.getElementById(b.dataset.eye); const show = i.type==='password';
+    i.type = show ? 'text' : 'password'; b.innerHTML = show ? I.eyeoff : I.eye; b.setAttribute('aria-label', show ? '비밀번호 숨기기' : '비밀번호 보기');
+  });
+}
+function vLogin(){
+  $('#app').innerHTML = `<section class="scr notab">
+    <div class="hero auth-hero"><div class="topline">${LOGO}</div>${illu()}${WAVE}</div>
+    <form class="auth-body" id="loginForm" novalidate>
+      <div class="auth-head"><span class="deco">${I.fork}</span><h1 class="t-title">동료들의 필드 맛집, 같이 봐요</h1><p>실명 대신 별칭으로 후기를 남겨요.</p></div>
+      ${companySelect('co', store.get('lastCompany',''))}
+      <div class="field">${I.user}<input id="nick" placeholder="별칭을 입력해 주세요" autocomplete="username" aria-label="별칭" maxlength="12"></div>
+      ${pwField('pw','비밀번호를 입력해 주세요')}
+      <div class="msg e" id="loginErr" role="alert"></div>
+      <button class="btn" id="loginBtn" type="submit" style="margin-top:14px" disabled>로그인</button>
+      <div class="authlink">처음이신가요? <button type="button" id="toSignup">회원가입</button></div>
+    </form></section>`;
+  bindEyes();
+  const upd = () => { $('#loginBtn').disabled = !($('#co').value && $('#nick').value.trim() && $('#pw').value); $('#loginErr').textContent=''; };
+  ['co','nick','pw'].forEach(id => $('#'+id).addEventListener('input', upd)); $('#co').addEventListener('change', upd); upd();
+  $('#toSignup').onclick = () => go('signup');
+  $('#loginForm').onsubmit = e => {
+    e.preventDefault();
+    const co = $('#co').value, nick = $('#nick').value.trim(), pw = $('#pw').value;
+    const u = users.find(x => x.company===co && x.nick===nick && x.pw===hash(pw));
+    if (!u){ $('#loginErr').textContent = '별칭이나 비밀번호가 맞지 않아요. 다시 확인해 주세요.'; return; }
+    login(u);
+  };
+}
+function login(u){
+  session = {company:u.company, nick:u.nick}; store.set('session', session); store.set('lastCompany', u.company);
+  const pending = sessionStorageGet('pendingDetail');
+  if (pending && byId[pending]){ sessionStorageSet('pendingDetail',''); go('detail/'+pending); } else go('home');
+}
+function sessionStorageGet(k){ try{ return sessionStorage.getItem(k); }catch(e){ return null; } }
+function sessionStorageSet(k,v){ try{ sessionStorage.setItem(k,v); }catch(e){} }
+
+/* ---------- 1-1 회원가입 ---------- */
+function vSignup(){
+  $('#app').innerHTML = `<section class="scr notab">
+    <div class="bar plain"><button class="iconbtn" id="bk" aria-label="뒤로">${I.back}</button><h1 class="t-title">필드맛지도 시작하기</h1><span></span></div>
+    <form class="auth-body" id="suForm" novalidate style="padding-top:12px">
+      ${companySelect('co','')}
+      <div class="field" id="nickWrap">${I.user}<input id="nick" placeholder="예) 여의도점심러" maxlength="12" aria-label="별칭"><span id="nickOk" hidden>${I.okc}</span></div>
+      <div class="msg n" id="nickMsg">후기를 쓸 때 실명 대신 보여요. 나중에 바꿀 수 없어요.</div>
+      ${pwField('pw','비밀번호를 입력해 주세요')}
+      ${pwField('pw2','비밀번호를 한 번 더 입력해 주세요')}
+      <div class="msg e" id="pwMsg" role="alert"></div>
+      <button class="btn" id="suBtn" type="submit" style="margin-top:14px" disabled>가입하고 시작하기</button>
+    </form></section>`;
+  bindEyes();
+  $('#bk').onclick = () => go('login');
+  const check = () => {
+    const co = $('#co').value, nick = $('#nick').value.trim(), pw = $('#pw').value, pw2 = $('#pw2').value;
+    let nickOk = false;
+    const m = $('#nickMsg');
+    if (!nick){ m.className='msg n'; m.textContent='후기를 쓸 때 실명 대신 보여요. 나중에 바꿀 수 없어요.'; }
+    else if (nick.length < 2){ m.className='msg e'; m.textContent='별칭은 2자 이상으로 입력해 주세요.'; }
+    else if (co && users.some(u => u.company===co && u.nick===nick)){ m.className='msg e'; m.textContent='같은 회사에 이미 있는 별칭이에요. 다른 별칭을 입력해 주세요.'; }
+    else if (!co){ m.className='msg n'; m.textContent='소속회사를 선택하면 별칭을 확인해 드려요.'; }
+    else { m.className='msg o'; m.textContent='사용할 수 있는 별칭이에요.'; nickOk = true; }
+    $('#nickOk').hidden = !nickOk;
+    $('#nickWrap').classList.toggle('err', m.classList.contains('e'));
+    const mis = pw2 && pw !== pw2;
+    $('#pwMsg').textContent = mis ? '비밀번호가 일치하지 않아요.' : (pw && pw.length < 4 ? '비밀번호는 4자 이상으로 입력해 주세요.' : '');
+    $('#pw2Wrap').classList.toggle('err', !!mis);
+    $('#suBtn').disabled = !(nickOk && pw.length >= 4 && pw === pw2);
+  };
+  ['nick','pw','pw2'].forEach(id => $('#'+id).addEventListener('input', check)); $('#co').addEventListener('change', check);
+  $('#suForm').onsubmit = e => {
+    e.preventDefault(); check(); if ($('#suBtn').disabled) return;
+    const u = {company:$('#co').value, nick:$('#nick').value.trim(), pw:hash($('#pw').value)};
+    users.push(u); store.set('users', users);
+    toast('가입했어요. 오늘 갈 필드를 골라볼까요?');
+    login(u);
+  };
+}
+
+/* ---------- 1-2 홈 ---------- */
+function vHome(){
+  const n = mySaved().length;
+  $('#app').innerHTML = `<section class="scr">
+    <div class="hero home-hero">
+      <div class="topline">${LOGO}<button class="iconbtn" id="toSaved" aria-label="저장한 식당">${I.bookmark}${n?`<span class="dot num">${n}</span>`:''}</button></div>
+      <h1 class="t-title">오늘 필드,<br>어디서 먹을까요?</h1>
+      <p>먼저 다녀온 동료들의 후기로 편하게 골라요.</p>
+      ${illu()}${WAVE}
+    </div>
+    <div class="card search-card">
+      <div class="qhead">${I.pin}어디로 필드 가세요?</div>
+      <div class="field">${I.search}<input id="q" placeholder="필드명·지역·건물 검색" autocomplete="off" aria-label="필드명·지역·건물 검색" value="${esc(Q.region||'')}">${Q.region?'<span id="qok">'+I.okc+'</span>':''}</div>
+      <div id="sugg"></div>
+      <button class="tbtn" id="loc" style="display:inline-flex;align-items:center;gap:6px"><span style="width:18px;height:18px;display:inline-block">${I.locate}</span>현재 위치 사용</button>
+    </div>
+    <div class="sec"><div class="qhead">${I.utensils}어떤 식사인가요?</div>
+      <div class="sitgrid">${['빠른 점심','팀 식사','고객사 동반','회식'].map(s=>`<button class="sit ${Q.sit===s?'on':''}" data-sit="${s}" aria-pressed="${Q.sit===s}">${SIT_ICON[s]}${s}</button>`).join('')}</div></div>
+    <div class="sec"><div class="qhead">${I.people}우리 팀 조건</div>
+      <div class="dd3">
+        ${dd('dPeople','인원',PEOPLE.map(p=>[p[0],p[1]]),Q.people)}
+        ${dd('dPrice','1인 가격대',PRICE,Q.price)}
+        ${dd('dWalk','도보 이동시간',WALK,Q.walk)}
+      </div>
+      <button class="morerow" id="more">${I.sliders}<span><b>조건 더 보기</b><small>음식 종류·대기시간·예약·주차·단체석</small></span>${extraCount()?`<span class="cnt num">${extraCount()}</span>`:''}${I.chev}</button>
+    </div>
+    ${recent.length ? `<div class="sec"><div class="qhead">${I.clock}최근 찾은 필드</div><div class="pills">${recent.map(r=>`<button class="pillchip" data-recent="${esc(r)}">${I.pin}${esc(r)}</button>`).join('')}</div></div>` : ''}
+    <div class="invite"><span class="b">${I.pencil}</span><p><b>가봤던 식당이 있나요?</b>다음 팀을 위해 후기를 남겨주세요.</p><button class="tbtn" id="toWrite">후기 남기기</button></div>
+    <p class="note">모든 식당·메뉴·후기·회사명은 시연용 가상 데이터예요.</p>
+  </section>
+  <div class="cta"><div>${Q.region?'':'<div class="cap">필드를 먼저 선택해 주세요.</div>'}<button class="btn" id="find" ${Q.region?'':'disabled'}>우리 팀에 맞는 식당 찾기</button></div></div>`;
+  $('#toSaved').onclick = () => go('saved');
+  $('#toWrite').onclick = () => go('write');
+  document.querySelectorAll('[data-sit]').forEach(b => b.onclick = () => { Q.sit = b.dataset.sit; persistQ(); document.querySelectorAll('[data-sit]').forEach(x => { x.classList.toggle('on', x===b); x.setAttribute('aria-pressed', x===b); }); });
+  $('#dPeople').onchange = e => { Q.people = e.target.value; persistQ(); };
+  $('#dPrice').onchange = e => { Q.price = e.target.value; persistQ(); };
+  $('#dWalk').onchange = e => { Q.walk = e.target.value; persistQ(); };
+  $('#more').onclick = () => filterSheet(false);
+  document.querySelectorAll('[data-recent]').forEach(b => b.onclick = () => pickRegion(b.dataset.recent));
+  const q = $('#q');
+  q.addEventListener('focus', () => { q.select(); suggest(''); });
+  q.addEventListener('input', () => { if (Q.region){ Q.region = null; persistQ(); updFind(); const ok = $('#qok'); if (ok) ok.remove(); } suggest(q.value); });
+  $('#loc').onclick = locate;
+  $('#find').onclick = () => { if (!Q.region) return; recent = [Q.region, ...recent.filter(x=>x!==Q.region)].slice(0,3); store.set('recent', recent); persistQ(); go('list'); };
+}
+function dd(id, label, opts, val){
+  return `<div class="dd"><label for="${id}">${label}</label><div class="sel"><select id="${id}">${opts.map(([v,l])=>`<option value="${v}" ${v===val?'selected':''}>${l}</option>`).join('')}</select></div></div>`;
+}
+const extraCount = () => (Q.cuisine!=='all') + (Q.wait!=='all') + Q.extras.length;
+function suggest(text){
+  const t = text.trim().toLowerCase();
+  const list = REGIONS.filter(r => !t || r.toLowerCase().includes(t) || ALIAS[r].some(a => a.toLowerCase().includes(t) || t.includes(a.toLowerCase())));
+  $('#sugg').innerHTML = list.length
+    ? `<div class="sugg">${list.map(r=>`<button data-reg="${esc(r)}"><span style="width:18px;height:18px;color:var(--o900)">${I.pin}</span>${esc(r)}<small class="num">식당 ${R.filter(x=>x.region===r).length}곳</small></button>`).join('')}</div>`
+    : `<div class="msg n" style="margin:8px 4px 0">찾는 필드가 없어요. 여의도·마곡·판교·을지로 중에서 골라 주세요.</div>`;
+  document.querySelectorAll('[data-reg]').forEach(b => b.onmousedown = b.onclick = e => { e.preventDefault(); pickRegion(b.dataset.reg); });
+}
+function pickRegion(r){ Q.region = r; persistQ(); vHome(); }
+function updFind(){ const b = $('#find'); if (b) b.disabled = !Q.region; }
+function locate(){
+  if (!navigator.geolocation){ toast('현재 위치를 쓸 수 없어요. 필드명이나 지역으로 검색해 주세요.'); return; }
+  navigator.geolocation.getCurrentPosition(p => {
+    const {latitude:la, longitude:lo} = p.coords; let best = REGIONS[0], bd = 1e9;
+    REGIONS.forEach(r => { const [a,b] = D.anchors[r]; const d = Math.hypot(a-la, (b-lo)*.8); if (d<bd){ bd=d; best=r; } });
+    pickRegion(best); toast(`가까운 필드 '${best}'를 선택했어요.`);
+  }, () => toast('현재 위치를 쓸 수 없어요. 필드명이나 지역으로 검색해 주세요.'), {timeout:8000});
+}
+
+/* 조건 시트: 홈에서는 추가 조건만, 목록에서는 전체 조건 */
+function filterSheet(full){
+  const T = JSON.parse(JSON.stringify(Q));
+  const grp = (q, html) => `<div class="grp"><div class="q">${q}</div>${html}</div>`;
+  const chipset = (key, opts, multi) => `<div class="chips">${opts.map(([v,l]) => `<button class="chip" data-k="${key}" data-v="${esc(v)}" ${multi?'data-multi="1"':''}>${l}</button>`).join('')}</div>`;
+  openLayer(`<div class="ov" id="ov"><div class="sheet" role="dialog" aria-modal="true" aria-label="조건 선택">
+    <div class="grab"></div><h2 class="t-title">${full?'조건 변경':'조건 더 보기'}</h2>
+    ${full ? grp('식사 상황', chipset('sit', ['빠른 점심','팀 식사','고객사 동반','회식'].map(s=>[s,s]))) + grp('인원', chipset('people', PEOPLE.map(p=>[p[0],p[1]]))) + grp('1인 가격대', chipset('price', PRICE)) + grp('도보 이동시간', chipset('walk', WALK)) : ''}
+    ${grp('음식 종류', chipset('cuisine', CUISINE.map(c=>[c, c==='all'?'전체':c])))}
+    ${grp('대기시간', chipset('wait', WAIT))}
+    ${grp('예약·주차·단체석', chipset('extras', EXTRAS, true))}
+    <div class="foot"><button class="btn2" id="reset">초기화</button><button class="btn" id="apply"></button></div>
+  </div></div>`);
+  const paint = () => {
+    document.querySelectorAll('.sheet [data-k]').forEach(b => {
+      const k = b.dataset.k, v = b.dataset.v;
+      const on = b.dataset.multi ? T.extras.includes(v) : String(T[k])===v;
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+    });
+    const n = full ? R.filter(r => matches(r, T)).length : null;
+    $('#apply').textContent = full ? `조건 적용하기 (${n}곳)` : '조건 적용하기';
+  };
+  document.querySelectorAll('.sheet [data-k]').forEach(b => b.onclick = () => {
+    const k = b.dataset.k, v = b.dataset.v;
+    if (b.dataset.multi) T.extras = T.extras.includes(v) ? T.extras.filter(x=>x!==v) : [...T.extras, v];
+    else T[k] = v;
+    paint();
+  });
+  $('#reset').onclick = () => { if (full){ T.sit='빠른 점심'; T.people='3~4'; T.price='all'; T.walk='all'; } T.cuisine='all'; T.wait='all'; T.extras=[]; paint(); };
+  $('#apply').onclick = () => { Object.assign(Q, T); persistQ(); closeLayer(); render(); };
+  $('#ov').onclick = e => { if (e.target.id==='ov') closeLayer(); };
+  paint();
+}
+
+/* ---------- 1-3 식당 목록 ---------- */
+function chipsOf(){
+  const c = [];
+  if (Q.sit) c.push(Q.sit);
+  c.push(PEOPLE.find(p=>p[0]===Q.people)[1]);
+  if (Q.price!=='all') c.push(PRICE.find(p=>p[0]===Q.price)[1]);
+  if (Q.walk!=='all') c.push('도보 '+Q.walk+'분');
+  if (Q.cuisine!=='all') c.push(Q.cuisine);
+  if (Q.wait!=='all') c.push(WAIT.find(w=>w[0]===Q.wait)[1]);
+  Q.extras.forEach(e => c.push(EXTRAS.find(x=>x[0]===e)[1]));
+  return c;
+}
+function photo(r, cls){
+  return `<div class="${cls||'ph'}"><img src="photos/${r.id}.jpg" alt="${esc(r.mainMenu)}" loading="lazy" onerror="this.remove()"><span>${esc(r.cuisine)}</span></div>`;
+}
+function stars(n){ return `<span class="st">${[1,2,3,4,5].map(i => I.star.replace('<svg', `<svg class="${n >= i-0.25 ? '' : 'off'}"`)).join('')}</span>`; }
+function cardHTML(r, opt){
+  const on = mySaved().includes(r.id), w = waitOf(r), rv = reviewsOf(r);
+  const bd = [`<span class="bdg">${r.maxPeople}인 함께 착석</span>`];
+  if (r.reservation) bd.push('<span class="bdg">예약 가능</span>');
+  if (r.parking) bd.push('<span class="bdg">주차 가능</span>');
+  if (r.groupSeat) bd.push('<span class="bdg">단체석 있음</span>');
+  return `<div class="card rc" role="button" tabindex="0" data-id="${r.id}">
+    ${photo(r)}
+    <div class="info">
+      <div class="nm"><b>${esc(r.name.replace(' 예시점',''))}</b><span class="ex">예시 식당</span></div>
+      <div class="sub">${esc(r.cuisine)} · ${esc(r.mainMenu)}</div>
+      <div class="sub num">도보 ${r.walk}분 · 1인 ${won(r.price)}</div>
+      <div class="rate num">${I.star}${ratingOf(r).toFixed(1)} <span style="color:var(--t600);font-weight:400">· 후기 ${rv.length}건</span></div>
+      <div class="badges">${bd.slice(0,3).join('')}</div>
+    </div>
+    ${opt==='saved' ? '' : `<div class="why">${I.check}<span>${esc(reason(r))}</span></div>`}
+    <div class="waitline num">${I.clock}<span>${w.lunch?'점심 ':''}평균 대기 ${w.avg}분 · 기록 ${w.n}건 · ${md(w.last)} 기준</span></div>
+    <div class="acts">${opt==='saved' ? `<button class="iconbtn" data-share="${r.id}" aria-label="공유">${I.share}</button>` : ''}<button class="iconbtn save ${on?'on':''}" data-save="${r.id}" aria-label="${on?'저장 취소':'저장하기'}">${I.bookmark}</button></div>
+  </div>`;
+}
+function bindCards(root){
+  root.querySelectorAll('.rc').forEach(c => {
+    c.onclick = e => { if (e.target.closest('[data-save],[data-share]')) return; go('detail/'+c.dataset.id); };
+    c.onkeydown = e => { if (e.key==='Enter') go('detail/'+c.dataset.id); };
+  });
+  root.querySelectorAll('[data-save]').forEach(b => b.onclick = e => { e.stopPropagation(); toggleSave(b.dataset.save); });
+  root.querySelectorAll('[data-share]').forEach(b => b.onclick = e => { e.stopPropagation(); shareOne(byId[b.dataset.share]); });
+}
+function vList(){
+  const list = sorted(results());
+  $('#app').innerHTML = `<section class="scr">
+    <div class="bar"><button class="iconbtn" id="bk" aria-label="뒤로">${I.back}</button>${LOGO}<div class="r"><button class="iconbtn" id="toSaved" aria-label="저장한 식당">${I.bookmark}</button></div></div>
+    <div class="regionbar">${I.pin}<b>${esc(Q.region)} 주변</b><button class="tbtn" id="chReg">지역 변경</button></div>
+    <div class="seg" role="tablist"><button id="vL" class="${listView==='list'?'on':''}" role="tab">목록</button><button id="vM" class="${listView==='map'?'on':''}" role="tab">지도</button></div>
+    <div class="chiprow"><div class="scroll"><button class="fchip f" id="filt">${I.sliders}필터</button>${chipsOf().map(c=>`<button class="fchip" data-open="1">${esc(c)}</button>`).join('')}<button class="fchip f" data-open="1">조건 변경</button></div></div>
+    <div class="reshead"><h2 class="t-title num">조건에 맞는 식당 ${list.length}곳</h2>${listView==='list'?`<div class="sel"><select id="sort" aria-label="정렬"><option value="match">조건에 맞는 순</option><option value="near">가까운 순</option><option value="rating">별점 높은 순</option></select></div>`:''}</div>
+    <div class="caption">${I.clock}대기시간은 방문 후기 기준이라 실제와 다를 수 있어요.</div>
+    ${listView==='list'
+      ? (list.length ? `<div class="list" id="list">${list.map(r=>cardHTML(r)).join('')}</div>` : `<div class="empty"><p>조건에 맞는 식당이 없어요. 도보 이동시간이나 가격대를 넓혀 보세요.</p><button class="btn" id="chg">조건 변경하기</button></div>`)
+      : `<div id="map"></div><div class="mapcard" id="mapPick"></div>`}
+  </section>`;
+  $('#bk').onclick = () => go('home');
+  $('#toSaved').onclick = () => go('saved');
+  $('#chReg').onclick = () => { go('home'); setTimeout(() => { const q = $('#q'); if (q){ q.focus(); } }, 80); };
+  $('#vL').onclick = () => { listView = 'list'; vList(); };
+  $('#vM').onclick = () => { listView = 'map'; vList(); };
+  $('#filt').onclick = () => filterSheet(true);
+  document.querySelectorAll('[data-open]').forEach(b => b.onclick = () => filterSheet(true));
+  if ($('#chg')) $('#chg').onclick = () => filterSheet(true);
+  if ($('#sort')){ $('#sort').value = sortBy; $('#sort').onchange = e => { sortBy = e.target.value; vList(); }; }
+  if ($('#list')) bindCards($('#list'));
+  if (listView==='map') drawMap(list);
+}
+
+/* 지도 */
+let map;
+function drawMap(list){
+  if (typeof L === 'undefined'){ $('#map').innerHTML = '<div class="empty"><p>지도를 불러오지 못했어요. 목록 탭으로 비교해 주세요.</p></div>'; return; }
+  if (map){ map.remove(); map = null; }
+  map = L.map('map', {zoomControl:true});
+  const tl = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {maxZoom:19, subdomains:'abcd', attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'}).addTo(map);
+  let warned = false;
+  tl.on('tileerror', () => { if (warned) return; warned = true; const n = document.createElement('div'); n.className = 'tilewarn'; n.textContent = '지도 배경을 불러오지 못했어요. 핀은 그대로 볼 수 있어요.'; $('#map').appendChild(n); });
+  const a = D.anchors[Q.region]; const pts = [a];
+  L.marker(a, {icon:L.divIcon({className:'', html:`<span class="office">${esc(Q.region)}</span>`}), zIndexOffset:300, keyboard:false}).addTo(map);
+  list.forEach((r,i) => {
+    const m = L.marker([r.lat, r.lng], {icon:L.divIcon({className:'', html:`<span class="pin ${i===0?'top':''}" data-pin="${r.id}"><b class="num">${i+1}</b><i></i></span>`}), zIndexOffset: i===0?400:0, title:r.name});
+    m.on('click', () => { document.querySelectorAll('.pin').forEach(p => p.classList.toggle('on', p.dataset.pin===r.id)); mapCard(r); });
+    m.addTo(map); pts.push([r.lat, r.lng]);
+  });
+  map.fitBounds(L.latLngBounds(pts).pad(.2), {maxZoom:17});
+  if (list[0]) mapCard(list[0]);
+}
+function mapCard(r){
+  const box = $('#mapPick'); if (!box) return;
+  box.innerHTML = cardHTML(r); bindCards(box);
+}
+
+/* ---------- 1-4 식당 상세 ---------- */
+function vDetail(){
+  const r = byId[route.arg]; if (!r){ go('home'); return; }
+  const on = mySaved().includes(r.id), rv = reviewsOf(r), w = waitOf(r);
+  const cell = (ic, t, s, ok) => `<div class="ucell ${ok===false?'no':''}">${ic}<span><b>${t}</b><small>${s}</small></span></div>`;
+  $('#app').innerHTML = `<section class="scr notab">
+    <div class="bar"><button class="iconbtn" id="bk" aria-label="뒤로">${I.back}</button>${LOGO}<div class="r"><button class="iconbtn" id="shTop" aria-label="공유하기">${I.share}</button><button class="iconbtn save ${on?'on':''}" id="svTop" aria-label="${on?'저장 취소':'저장하기'}">${I.bookmark}</button></div></div>
+    ${photo(r,'dhero')}
+    <div class="dhead">
+      <div class="nm"><h1 class="t-title">${esc(r.name.replace(' 예시점',''))}</h1><span class="ex">예시 식당</span></div>
+      <div class="sub">${esc(r.cuisine)} · ${esc(r.mainMenu)}</div>
+      <div class="meta num"><span class="rate">${I.star}${ratingOf(r).toFixed(1)}</span><span>· 후기 ${rv.length}건</span><span class="sep"></span><span style="width:14px;height:14px;color:var(--o900)">${I.pin}</span><span>${esc(r.region)}에서 도보 ${r.walk}분</span></div>
+      <div class="sub" style="font-size:12px;color:var(--t400)">${esc(r.address)}</div>
+    </div>
+    <div class="dacts">
+      <button id="aSave" class="${on?'on':''}">${I.bookmark}${on?'저장됨':'저장하기'}</button>
+      <button id="aShare">${I.share}공유하기</button>
+      <button id="aCall">${I.phone}전화 문의</button>
+      <button id="aRoute">${I.route}길찾기</button>
+    </div>
+    <div class="card box"><h2>대표 메뉴와 가격</h2>${r.menus.map(m=>`<div class="mrow"><span>${esc(m.name)}</span><b class="num">${won(m.price)}</b></div>`).join('')}<div class="asof">가격 확인 ${PRICE_ASOF} 기준</div></div>
+    <div class="card box"><h2>이용 정보</h2>
+      <div class="ugrid">
+        ${cell(I.people, `${r.maxPeople}인 함께 착석`, '착석 가능 인원')}
+        ${cell(I.cal, r.reservation?'예약 가능':'예약 불가', r.reservation?'전화 문의':'현장 대기', r.reservation)}
+        ${cell(I.car, r.parking?'주차 가능':'주차 불가', r.parking?esc(r.parkingDetail.replace('가상 ','').split(' · ')[0]):'대중교통 이용', r.parking)}
+        ${cell(I.door, r.room?'룸 있음':(r.groupSeat?'단체석 있음':'일반석'), r.room?(r.groupSeat?'단체석도 있어요':'조용한 자리'):'홀 좌석', r.room||r.groupSeat)}
+      </div>
+      <div class="urows"><div><span>영업시간</span><span>${esc(r.hours)}</span></div><div><span>연락처</span><span class="num">${esc(r.phone)}</span></div></div>
+    </div>
+    <div class="card box"><h2>${w.lunch?'점심 ':''}대기 기록</h2>
+      <div class="waitbig"><span class="c">${I.clock}</span><div><b class="num">평균 ${w.avg}분</b><small class="num">최근 후기 ${w.n}건 기준 · 대기 기록 ${dot(w.last)} 기준</small></div></div>
+    </div>
+    <div class="card box"><h2>동료들의 후기 <span class="num" style="color:var(--t400);font-weight:600">${rv.length}</span></h2>
+      ${rv.length ? rv.map(v => `<div class="rv"><div class="h"><b>${esc(v.nick)}</b>${v.mine?'<span class="mine">내 후기</span>':''}<span class="num">· ${dot(v.date)} ${esc(v.slot)} · ${v.people}명</span></div>
+        <div class="s num">${stars(Number(v.rating))}<span>${Number(v.rating).toFixed(1)}</span><span style="color:var(--t600);font-weight:400">대기 ${v.wait==0?'없음':'약 '+v.wait+'분'}</span></div><p>${esc(v.text)}</p></div>`).join('')
+        : '<p class="sub">아직 후기가 없어요. 첫 후기를 남겨주세요.</p>'}
+    </div>
+    <p class="note">식당명·주소·연락처·좌표는 시연용 가상 정보예요.</p>
+  </section>
+  <div class="cta notab"><div><button class="btn" id="wr">이 식당 후기 쓰기</button></div></div>`;
+  $('#bk').onclick = () => history.length > 1 ? history.back() : go('home');
+  const sv = () => { toggleSave(r.id); vDetail(); };
+  $('#svTop').onclick = sv; $('#aSave').onclick = sv;
+  $('#shTop').onclick = $('#aShare').onclick = () => shareOne(r);
+  $('#aCall').onclick = () => dialog(`<p>전화 문의<small>예시 번호라 실제로 연결되지 않아요.</small></p><div class="copybox num">${esc(r.phone.replace(' (예시 번호)',''))}</div>`, '확인');
+  $('#aRoute').onclick = () => dialog(`<p>길찾기<small>가상 좌표라 실제 식당은 없어요. 앱 지도에서 위치를 보여드릴게요.</small></p>`, '지도에서 보기', () => { Q.region = r.region; persistQ(); listView = 'map'; go('list'); });
+  $('#wr').onclick = () => go('write/'+r.id);
+}
+
+/* ---------- 1-5 저장한 식당 ---------- */
+function vSaved(){
+  const list = mySaved().map(id => byId[id]).filter(Boolean);
+  $('#app').innerHTML = `<section class="scr">
+    <div class="bar plain"><button class="iconbtn" id="bk" aria-label="뒤로">${I.back}</button><h1 class="t-title">저장한 식당</h1><span></span></div>
+    ${list.length ? `<div class="list" id="list">${list.map(r=>cardHTML(r,'saved')).join('')}</div>`
+      : `<div class="empty" style="padding-top:60px">${illu()}<p>마음에 드는 식당을 저장해보세요.</p><button class="btn" id="goFind">식당 찾으러 가기</button></div>`}
+    <div class="note">${esc(session.company)} · 별칭 '${esc(session.nick)}'<br><button class="tbtn" id="logout" style="font-size:12px;color:var(--t600)">로그아웃</button></div>
+  </section>`;
+  const il = document.querySelector('.empty .illu'); if (il) il.style.cssText = 'width:180px;position:static';
+  $('#bk').onclick = () => go('home');
+  if ($('#goFind')) $('#goFind').onclick = () => go('home');
+  if ($('#list')) bindCards($('#list'));
+  $('#logout').onclick = () => { session = null; store.set('session', null); go('login'); };
+}
+
+/* ---------- 1-6 후기 쓰기 ---------- */
+let W = null;
+function writeDirty(){ return W && (W.rating || W.text.trim() || W.wait!==null); }
+function vWrite(){
+  const pre = route.arg && byId[route.arg] ? route.arg : '';
+  const t = new Date(); const today = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  W = {id:pre, date:today, slot:'점심', people:4, wait:null, rating:0, text:''};
+  const opts = REGIONS.map(g => `<optgroup label="${esc(g)}">${R.filter(r=>r.region===g).map(r=>`<option value="${r.id}" ${r.id===pre?'selected':''}>${esc(r.name.replace(' 예시점',''))} · ${esc(r.cuisine)}</option>`).join('')}</optgroup>`).join('');
+  $('#app').innerHTML = `<section class="scr">
+    <div class="bar plain"><button class="iconbtn" id="bk" aria-label="뒤로">${I.back}</button><h1 class="t-title">다녀온 식당 후기 쓰기</h1><span></span></div>
+    <form class="form" id="wf" novalidate>
+      <div><div class="q">어느 식당인가요?</div><div class="sel"><select id="wId"><option value="" ${pre?'':'selected'} disabled>식당을 선택해 주세요</option>${opts}</select></div></div>
+      <div><div class="q">언제 갔나요?</div><input class="datein num" type="date" id="wDate" value="${today}" max="${today}"></div>
+      <div><div class="q">식사 시간대</div><div class="chips">${['점심','저녁'].map(s=>`<button type="button" class="chip" data-slot="${s}">${s}</button>`).join('')}</div></div>
+      <div><div class="q">몇 명이 갔나요?</div><div class="stepper"><button type="button" id="pm" aria-label="인원 줄이기">−</button><output id="po" class="num">4명</output><button type="button" id="pp" aria-label="인원 늘리기">+</button></div></div>
+      <div><div class="q">얼마나 기다렸나요?</div><div class="chips">${[[0,'바로 입장'],[10,'10분 이내'],[15,'10~20분'],[25,'20분 이상']].map(([v,l])=>`<button type="button" class="chip" data-wait="${v}">${l}</button>`).join('')}</div></div>
+      <div><div class="q">별점</div><div class="stars" id="wStars">${[1,2,3,4,5].map(n=>`<button type="button" data-s="${n}" aria-label="${n}점">${I.star}</button>`).join('')}</div></div>
+      <div><div class="q">후기</div><textarea class="ta" id="wText" maxlength="300" placeholder="예) 4명이 앉기 편하고 점심 회전이 빨라요."></textarea><div class="msg n" id="wHint" style="margin:6px 4px 0">10자 이상 써 주세요.</div></div>
+      <div class="who">후기는 별칭 '${esc(session.nick)}'(으)로 올라가요.</div>
+    </form>
+  </section>
+  <div class="cta"><div><button class="btn" id="wBtn" disabled>후기 등록하기</button></div></div>`;
+  const paint = () => {
+    document.querySelectorAll('[data-slot]').forEach(b => b.classList.toggle('on', b.dataset.slot===W.slot));
+    document.querySelectorAll('[data-wait]').forEach(b => b.classList.toggle('on', W.wait!==null && +b.dataset.wait===W.wait));
+    document.querySelectorAll('#wStars button').forEach(b => b.classList.toggle('on', +b.dataset.s <= W.rating));
+    $('#po').textContent = W.people + '명';
+    const len = W.text.trim().length;
+    $('#wHint').textContent = len >= 10 ? `${len}자` : `10자 이상 써 주세요. (${len}/10)`;
+    $('#wBtn').disabled = !(W.id && W.date && W.wait!==null && W.rating && len >= 10);
+  };
+  $('#wId').onchange = e => { W.id = e.target.value; paint(); };
+  $('#wDate').onchange = e => { W.date = e.target.value; paint(); };
+  document.querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { W.slot = b.dataset.slot; paint(); });
+  document.querySelectorAll('[data-wait]').forEach(b => b.onclick = () => { W.wait = +b.dataset.wait; paint(); });
+  document.querySelectorAll('#wStars button').forEach(b => b.onclick = () => { W.rating = +b.dataset.s; paint(); });
+  $('#pm').onclick = () => { W.people = Math.max(1, W.people-1); paint(); };
+  $('#pp').onclick = () => { W.people = Math.min(20, W.people+1); paint(); };
+  $('#wText').oninput = e => { W.text = e.target.value; paint(); };
+  $('#bk').onclick = () => { const back = () => { W = null; history.length > 1 ? history.back() : go('home'); }; writeDirty() ? confirmLeave(back) : back(); };
+  $('#wBtn').onclick = () => {
+    const v = {nick:session.nick, date:W.date, slot:W.slot, people:W.people, rating:W.rating, wait:W.wait, text:W.text.trim(), mine:true};
+    myReviews[W.id] = [v, ...(myReviews[W.id]||[])]; store.set('reviews', myReviews);
+    const id = W.id; W = null;
+    toast('후기를 등록했어요. 다음 팀에게 큰 도움이 돼요!');
+    location.replace('#detail/'+id);
+  };
+  paint();
+}
+function confirmLeave(fn){
+  dialog('<p>작성 중인 후기가 사라져요. 나갈까요?</p>', '나가기', () => { W = null; fn(); }, '계속 쓰기');
+}
+
+/* ---------- 저장 · 공유 ---------- */
+function toggleSave(id){
+  const k = ukey(); const cur = mySaved();
+  saved[k] = cur.includes(id) ? cur.filter(x=>x!==id) : [id, ...cur];
+  store.set('saved', saved);
+  toast(saved[k].includes(id) ? '저장했어요' : '저장을 취소했어요');
+  if (route.name==='list' && listView==='list') vList();
+  if (route.name==='saved') vSaved();
+  if (route.name==='list' && listView==='map'){ mapCard(byId[id]); }
+}
+function shareOne(r){
+  const url = location.origin + location.pathname + '?r=' + r.id;
+  const text = `[필드맛지도] ${r.name.replace(' 예시점','')} (${r.region})\n${r.cuisine} · 1인 ${won(r.price)} · 도보 ${r.walk}분 · ${r.maxPeople}인 함께 착석\n${url}`;
+  const done = () => toast('링크를 복사했어요. 팀원에게 보내보세요.');
+  try {
+    navigator.clipboard.writeText(text).then(done, () => dialog(`<p>아래 내용을 복사해 팀원에게 보내주세요.</p><textarea class="ta" readonly style="min-height:120px;font-size:13px">${esc(text)}</textarea>`, '닫기'));
+  } catch(e){ dialog(`<p>아래 내용을 복사해 팀원에게 보내주세요.</p><textarea class="ta" readonly style="min-height:120px;font-size:13px">${esc(text)}</textarea>`, '닫기'); }
+}
+
+/* ---------- 레이어 · 다이얼로그 · 토스트 ---------- */
+function openLayer(html, keepScroll){ $('#layer').innerHTML = html; if (!keepScroll) document.body.style.overflow = 'hidden'; }
+function closeLayer(){ $('#layer').innerHTML = ''; document.body.style.overflow = ''; }
+function dialog(body, okLabel, onOk, cancelLabel){
+  openLayer(`<div class="ov center" id="ov"><div class="dialog" role="alertdialog" aria-modal="true">${body}
+    ${cancelLabel ? `<div class="two"><button class="btn2" id="dCancel">${cancelLabel}</button><button class="btn" id="dOk">${okLabel}</button></div>` : `<button class="btn" id="dOk">${okLabel}</button>`}</div></div>`);
+  $('#dOk').onclick = () => { closeLayer(); if (onOk) onOk(); };
+  if ($('#dCancel')) $('#dCancel').onclick = closeLayer;
+  $('#ov').onclick = e => { if (e.target.id==='ov') closeLayer(); };
+  const ta = document.querySelector('.dialog textarea'); if (ta){ ta.focus(); ta.select(); }
+}
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeLayer(); });
+let tt;
+function toast(msg){
+  let t = document.querySelector('.toast'); if (!t){ t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role','status'); document.body.appendChild(t); }
+  t.textContent = msg; clearTimeout(tt); tt = setTimeout(() => t.remove(), 2400);
+}
+
+/* ---------- 시작 ---------- */
+const shared = new URLSearchParams(location.search).get('r');
+if (shared && byId[shared]){
+  try { history.replaceState(null, '', location.pathname + '#detail/' + shared); } catch(e){ location.hash = 'detail/'+shared; }
+  if (!session) sessionStorageSet('pendingDetail', shared);
+}
+render();
+})();
+</script>
+</body>
+</html>
