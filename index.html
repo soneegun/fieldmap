@@ -82,6 +82,7 @@ h1,h2,h3{margin:0}
 .btn2{display:flex;align-items:center;justify-content:center;height:52px;border-radius:999px;border:1px solid var(--o900);background:var(--surface);color:var(--o-ink);font-weight:800;font-size:15px;width:100%}
 .btn2:active{background:var(--o50)}
 .tbtn{border:0;background:none;color:var(--o-ink);font-weight:600;font-size:14px;padding:10px 4px;min-height:44px}
+.demohint{margin:-6px 0 0;text-align:center;font-size:12px;color:var(--t400)}
 .authlink{text-align:center;color:var(--t400);margin-top:4px}
 .authlink button{border:0;background:none;color:var(--o-ink);font-weight:800;text-decoration:underline;padding:10px 4px}
 
@@ -215,13 +216,18 @@ h1,h2,h3{margin:0}
 .empty{text-align:center;padding:36px 20px;display:grid;gap:14px;justify-items:center}
 .empty p{margin:0;color:var(--t600);font-size:15px;max-width:300px}
 .empty .btn{max-width:280px}
-#map{height:calc(100vh - 520px);min-height:260px;margin:12px 16px 0;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#F6EEE9}
+#map{position:relative;z-index:0;isolation:isolate;height:calc(100vh - 520px);min-height:260px;margin:12px 16px 0;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#F6EEE9}  /* 지도 안의 층(핀·원·확대 버튼)이 조건 창·상단 바 위로 올라오지 않게 지도 영역을 한 층으로 묶음 */
 .pin{transform:translate(-50%,-100%);display:inline-flex;flex-direction:column;align-items:center}
 .pin b{min-width:26px;height:26px;border-radius:13px;padding:0 7px;background:#fff;color:var(--o-ink);border:2px solid var(--o900);display:grid;place-items:center;font-size:12px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,.18);white-space:nowrap}
 .pin.top b,.pin.on b{background:var(--o900);color:#fff}
 .pin i{width:2px;height:6px;background:var(--o900)}
 .office{transform:translate(-50%,-50%);display:inline-block;background:var(--t900);color:#fff;font-weight:800;font-size:12px;border-radius:999px;padding:4px 10px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .leaflet-div-icon{background:none;border:0}
+/* 도보 시간 원 · 이동 경로 */
+.ringlab{transform:translate(-50%,-50%);display:inline-block;background:rgba(255,255,255,.94);color:var(--o-ink);border:1px solid var(--o100);border-radius:999px;padding:1px 8px;font-size:11px;font-weight:800;white-space:nowrap}
+.routelab.up{transform:translate(-50%,calc(-100% - 38px))}
+.ringlab.sel{background:var(--o900);color:#fff;border-color:var(--o900)}
+.routelab{transform:translate(-50%,6px);display:inline-block;background:#fff;color:var(--o-ink);border:1.5px solid var(--o900);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .mapcard{padding:12px 16px 0}
 .mapcard>.card{box-shadow:0 8px 24px rgba(0,0,0,.08)}
 .leaflet-tile-pane{filter:saturate(.75) sepia(.06) brightness(1.03)}
@@ -402,9 +408,10 @@ const store = {
 };
 function hash(s){ let h = 2166136261; for (const c of s){ h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return (h>>>0).toString(16); }
 // 시연용 기본 계정과 기존 별칭 (모두 가상)
+const DEMO = {company:COMPANIES[0], nick:'필드맛지도', pw:'test1234'};  // 심사용 테스트 계정
 let users = store.get('users', null);
 if (!users){
-  users = [{company:COMPANIES[0], nick:'필드맛지도', pw:hash('test1234')}];
+  users = [{company:DEMO.company, nick:DEMO.nick, pw:hash(DEMO.pw)}];
   const nicks = [...new Set(R.flatMap(r => r.reviews.map(v => v.nick)))];
   nicks.forEach(n => users.push({company:COMPANIES[0], nick:n, pw:hash('seed-'+n)}));
   store.set('users', users);
@@ -529,12 +536,19 @@ function vLogin(){
       ${pwField('pw','비밀번호를 입력해 주세요')}
       <div class="msg e" id="loginErr" role="alert"></div>
       <button class="btn" id="loginBtn" type="submit" style="margin-top:14px" disabled>로그인</button>
+      <button class="btn2" id="demoBtn" type="button">테스트 계정으로 계속</button>
+      <p class="demohint">심사용 계정: ${DEMO.company} / ${DEMO.nick} / ${DEMO.pw}</p>
       <div class="authlink">처음이신가요? <button type="button" id="toSignup">회원가입</button></div>
     </form></section>`;
   bindEyes();
   const upd = () => { $('#loginBtn').disabled = !($('#co').value && $('#nick').value.trim() && $('#pw').value); $('#loginErr').textContent=''; };
   ['co','nick','pw'].forEach(id => $('#'+id).addEventListener('input', upd)); $('#co').addEventListener('change', upd); upd();
   $('#toSignup').onclick = () => go('signup');
+  $('#demoBtn').onclick = () => {
+    let u = users.find(x => x.company===DEMO.company && x.nick===DEMO.nick);
+    if (!u){ u = {company:DEMO.company, nick:DEMO.nick, pw:hash(DEMO.pw)}; users.push(u); store.set('users', users); }
+    login(u);
+  };
   $('#loginForm').onsubmit = e => {
     e.preventDefault();
     const co = $('#co').value, nick = $('#nick').value.trim(), pw = $('#pw').value;
@@ -749,6 +763,7 @@ function vList(){
     <div class="chiprow"><div class="scroll"><button class="fchip f" id="filt">${I.sliders}필터</button>${chipsOf().map(c=>`<button class="fchip" data-open="1">${esc(c)}</button>`).join('')}<button class="fchip f" data-open="1">조건 변경</button></div></div>
     <div class="reshead"><h2 class="t-title num">조건에 맞는 식당 ${list.length}곳</h2>${listView==='list'?`<div class="sel"><select id="sort" aria-label="정렬"><option value="match">조건에 맞는 순</option><option value="near">가까운 순</option><option value="rating">별점 높은 순</option></select></div>`:''}</div>
     <div class="caption">${I.clock}대기시간은 방문 후기 기준이라 실제와 다를 수 있어요.</div>
+    ${listView==='map' ? `<div class="caption">${I.pin}원은 도보 5·10·15분 거리예요. 핀을 누르면 방향이 보여요.</div>` : ''}
     ${listView==='list'
       ? (list.length ? `<div class="list" id="list">${list.map(r=>cardHTML(r)).join('')}</div>` : `<div class="empty"><p>조건에 맞는 식당이 없어요. 도보 이동시간이나 가격대를 넓혀 보세요.</p><button class="btn" id="chg">조건 변경하기</button></div>`)
       : `<div id="map"></div><div class="mapcard" id="mapPick"></div>`}
@@ -771,7 +786,7 @@ let map;
 function drawMap(list){
   if (typeof L === 'undefined'){ $('#map').innerHTML = '<div class="empty"><p>지도를 불러오지 못했어요. 목록 탭으로 비교해 주세요.</p></div>'; return; }
   if (map){ map.remove(); map = null; }
-  map = L.map('map', {zoomControl:true});
+  map = L.map('map', {zoomControl:true, zoomSnap:.25});
   /* 지도 배경: 키가 필요 없는 OpenStreetMap 기본 지도. 안 뜨면 OSM 인도주의(HOT) 지도로 자동 전환 */
   const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자';
   const TILES = [
@@ -794,14 +809,33 @@ function drawMap(list){
   };
   useTiles();
   const a = D.anchors[Q.region]; const pts = [a];
+  /* 도보 시간 원: 도보 시간은 '도로 거리 ÷ 70m/분', 도로 거리는 직선 거리의 1.3배라서 반지름 = 분 × 70 ÷ 1.3 (+2m 반올림 보정) */
+  const ringR = n => n * 70 / 1.3 + 2;
+  const sel = Q.walk === 'all' ? null : +Q.walk;
+  const maxWalk = list.length ? Math.max(...list.map(r => r.walk)) : 5;
+  const fitN = Math.max(sel || 0, [5,10,15].find(n => n >= maxWalk) || 15);
+  [5,10,15].forEach(n => {
+    const on = n === sel, rad = ringR(n);
+    L.circle(a, {radius:rad, color:'#FD5108', weight:on?2.5:1.5, opacity:on?.9:.55, dashArray:on?null:'4 6', fillColor:'#FD5108', fillOpacity:on?.08:.03, interactive:false}).addTo(map);
+    L.marker([a[0] + rad/111320, a[1]], {icon:L.divIcon({className:'', html:`<span class="ringlab ${on?'sel':''}">${n}분${on?' 이내':''}</span>`}), interactive:false, keyboard:false, zIndexOffset:-100}).addTo(map);
+    if (n === fitN){ const dl = rad/111320, dg = rad/(111320*Math.cos(a[0]*Math.PI/180)); pts.push([a[0]-dl, a[1]-dg], [a[0]+dl, a[1]+dg]); }
+  });
   L.marker(a, {icon:L.divIcon({className:'', html:`<span class="office">${esc(Q.region)}</span>`}), zIndexOffset:300, keyboard:false}).addTo(map);
+  /* 핀을 누르면 필드 → 식당 이동 방향(점선)과 도보 시간 */
+  const route = L.layerGroup().addTo(map);
+  const showRoute = r => {
+    route.clearLayers();
+    /* 경로 글자: 식당이 필드보다 위쪽이면 핀 위에, 아니면 핀 아래에 (지도 위쪽 끝이면 아래로) */
+    L.polyline([a, [r.lat, r.lng]], {color:'#FD5108', weight:3, dashArray:'2 8', lineCap:'round', interactive:false}).addTo(route);
+    L.marker([r.lat, r.lng], {icon:L.divIcon({className:'', html:`<span class="routelab num ${r.lat > a[0] && map.latLngToContainerPoint([r.lat, r.lng]).y > 120 ? 'up' : ''}">도보 ${r.walk}분 · ${r.distance}m</span>`}), interactive:false, keyboard:false, zIndexOffset:200}).addTo(route);
+  };
   list.forEach((r,i) => {
-    const m = L.marker([r.lat, r.lng], {icon:L.divIcon({className:'', html:`<span class="pin ${i===0?'top':''}" data-pin="${r.id}"><b class="num">${i+1}</b><i></i></span>`}), zIndexOffset: i===0?400:0, title:r.name});
-    m.on('click', () => { document.querySelectorAll('.pin').forEach(p => p.classList.toggle('on', p.dataset.pin===r.id)); mapCard(r); });
+    const m = L.marker([r.lat, r.lng], {icon:L.divIcon({className:'', html:`<span class="pin ${i===0?'top':''}" data-pin="${r.id}"><b class="num">${i+1}</b><i></i></span>`}), zIndexOffset: i===0?1100:1000, title:r.name});
+    m.on('click', () => { document.querySelectorAll('.pin').forEach(p => p.classList.toggle('on', p.dataset.pin===r.id)); mapCard(r); showRoute(r); });
     m.addTo(map); pts.push([r.lat, r.lng]);
   });
-  map.fitBounds(L.latLngBounds(pts).pad(.2), {maxZoom:17});
-  if (list[0]) mapCard(list[0]);
+  map.fitBounds(L.latLngBounds(pts).pad(.1), {maxZoom:17});
+  if (list[0]){ mapCard(list[0]); showRoute(list[0]); }
 }
 function mapCard(r){
   const box = $('#mapPick'); if (!box) return;
